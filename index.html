@@ -198,6 +198,52 @@ input[type="text"].has-value { border-color: var(--mint); background: #F1FBF8; }
 .copy-tag { font-size: 0.54rem; letter-spacing: 0.09em; text-transform: uppercase; color: rgba(28,28,26,0.28); margin-bottom: 3px; }
 .tbl-empty { text-align: center; padding: 32px; color: rgba(28,28,26,0.28); font-size: 0.67rem; }
 
+/* PIXIESET MODAL */
+#pixieset-modal {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(14,28,44,0.82); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+#pixieset-modal.hidden { display: none; }
+.px-modal-box {
+  background: #F7F7F7; width: 100%; max-width: 780px; max-height: 88vh;
+  display: flex; flex-direction: column; border-radius: 3px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.45);
+}
+.px-modal-head {
+  padding: 20px 24px 16px; border-bottom: 1px solid rgba(5,42,97,0.12);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-shrink: 0;
+}
+.px-modal-title { font-family: var(--serif); font-size: 1.4rem; font-weight: 600; color: var(--forest); letter-spacing: 0.03em; }
+.px-modal-sub { font-size: 0.63rem; color: rgba(5,42,97,0.5); letter-spacing: 0.06em; margin-top: 3px; }
+.px-modal-close {
+  background: none; border: none; cursor: pointer; font-size: 1.1rem;
+  color: rgba(5,42,97,0.35); padding: 2px 6px; line-height: 1; border-radius: 2px;
+  transition: color 0.14s, background 0.14s; flex-shrink: 0;
+}
+.px-modal-close:hover { color: var(--forest); background: rgba(5,42,97,0.07); }
+.px-modal-body { flex: 1; overflow-y: auto; padding: 20px 24px; min-height: 0; }
+#px-code-out {
+  width: 100%; height: 340px; font-family: var(--mono); font-size: 0.66rem;
+  line-height: 1.7; background: #fff; border: 1px solid var(--forest-rule);
+  border-radius: 2px; padding: 14px 15px; color: var(--ink); resize: vertical;
+  outline: none; transition: border-color 0.15s;
+}
+#px-code-out:focus { border-color: var(--forest-mid); }
+.px-modal-foot {
+  padding: 14px 24px 18px; border-top: 1px solid rgba(5,42,97,0.10);
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0; flex-wrap: wrap;
+}
+.px-hint { font-size: 0.61rem; color: rgba(5,42,97,0.4); letter-spacing: 0.04em; flex: 1; }
+.btn-copy-px {
+  display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono);
+  font-size: 0.64rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  border: none; border-radius: 2px; padding: 11px 22px; cursor: pointer; transition: all 0.15s;
+  background: var(--mint); color: var(--stage);
+}
+.btn-copy-px:hover { background: #9ad2c9; }
+.btn-copy-px:active { transform: scale(0.98); }
+
 /* SAVE ROW */
 .save-row { display: flex; gap: 12px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
 .btn {
@@ -320,9 +366,30 @@ input[type="text"].has-value { border-color: var(--mint); background: #F1FBF8; }
         <button class="btn btn-ghost"   onclick="addImageRow()">+ Add Row</button>
         <button class="btn btn-ghost"   onclick="clearInputs()">Clear</button>
         <span id="save-status"></span>
+        <button class="btn btn-primary" onclick="openPixiesetModal()" style="margin-left:auto;background:var(--terracotta)">&#8594;&nbsp; Get Pixieset Code</button>
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- PIXIESET CODE MODAL -->
+<div id="pixieset-modal" class="hidden">
+  <div class="px-modal-box">
+    <div class="px-modal-head">
+      <div>
+        <div class="px-modal-title" id="px-modal-title">Ready to paste into Pixieset</div>
+        <div class="px-modal-sub">Copy the code below — paste it into the Custom Code block for this page in Pixieset.</div>
+      </div>
+      <button class="px-modal-close" onclick="closePixiesetModal()">&#x2715;</button>
+    </div>
+    <div class="px-modal-body">
+      <textarea id="px-code-out" readonly spellcheck="false"></textarea>
+    </div>
+    <div class="px-modal-foot">
+      <span class="px-hint">Select all &amp; copy, or use the button →</span>
+      <button class="btn-copy-px" id="px-copy-btn" onclick="copyPixiesetCode()">&#9654;&nbsp; Copy All Code</button>
+    </div>
   </div>
 </div>
 
@@ -787,6 +854,39 @@ function exportFile() {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
+
+// ── PIXIESET EXPORT ────────────────────────────────────────────────────────
+function openPixiesetModal() {
+  if (!curPage) return;
+  const code = PAGE_CODES[curPage] || '';
+  if (!code) { setSS('No code saved for this page yet.', 'err'); return; }
+  const pageLabel = document.getElementById('swap-title').textContent || curPage;
+  document.getElementById('px-modal-title').textContent = pageLabel + ' — Ready to paste into Pixieset';
+  document.getElementById('px-code-out').value = code;
+  document.getElementById('px-copy-btn').textContent = '▶  Copy All Code';
+  document.getElementById('pixieset-modal').classList.remove('hidden');
+  setTimeout(() => { document.getElementById('px-code-out').focus(); document.getElementById('px-code-out').select(); }, 80);
+}
+
+function closePixiesetModal() {
+  document.getElementById('pixieset-modal').classList.add('hidden');
+}
+
+function copyPixiesetCode() {
+  const code = document.getElementById('px-code-out').value;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.getElementById('px-copy-btn');
+    btn.textContent = '✓  Copied!';
+    setTimeout(() => { btn.textContent = '▶  Copy All Code'; }, 2000);
+  });
+}
+
+document.getElementById('pixieset-modal').addEventListener('click', function(e) {
+  if (e.target === this) closePixiesetModal();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closePixiesetModal();
+});
 
 // ── UTILS ──────────────────────────────────────────────────────────────────
 function clipCopy(text, el) {
