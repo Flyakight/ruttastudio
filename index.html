@@ -293,12 +293,12 @@ input[type="text"].has-value { border-color: var(--mint); background: #F1FBF8; }
   <div id="topbar">
     <div id="page-breadcrumb">Select a page</div>
     <div>
-      <button class="btn-sm btn-sm-ghost" id="edit-btn" style="display:none" onclick="toggleAdmin()">Edit Source</button>
+      <button class="btn-sm btn-sm-ghost" id="edit-btn" style="display:none" onclick="toggleAdmin()">Edit / Update Source Code</button>
     </div>
   </div>
 
   <div id="admin-panel" style="display:none">
-    <div class="admin-label">Source Code — paste the full Pixieset custom code block for this page</div>
+    <div class="admin-label">Edit / Update Source Code — paste the latest Pixieset custom code block for this page</div>
     <textarea id="source-textarea" placeholder="Paste full custom code here…" spellcheck="false"></textarea>
     <div class="admin-actions">
       <button class="btn btn-primary" onclick="saveSource()">Save &amp; Extract</button>
