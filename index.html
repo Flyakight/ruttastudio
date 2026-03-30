@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RS rutta studio — Content Tool</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Nunito+Sans:wght@400;500;700;800&display=swap');
+:root {
+  --ink: #052A61; --parchment: #F7F7F7; --forest: #052A61; --forest-mid: #11609E;
+  --forest-dim: rgba(17,96,158,0.10); --forest-rule: rgba(5,42,97,0.16);
+  --terracotta: #3A91B5; --terra-dim: #11609E;
+  --stage: #162E45; --stage-mid: #1D3853; --mint: #7CBAB0;
+  --sidebar-w: 232px;
+  --mono: 'Mendi Sans', 'Nunito Sans', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif;
+  --serif: 'Cormorant Garamond', Georgia, serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--mono); color: var(--ink);
+  background: radial-gradient(circle at 80% 10%, var(--stage-mid), var(--stage) 52%);
+  display: flex;
+}
+
+/* SIDEBAR */
+#sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-w);
+  background: rgba(10, 38, 66, 0.95); display: flex; flex-direction: column;
+  z-index: 100; border-right: 1px solid rgba(124,186,176,0.28);
+}
+.sidebar-brand { padding: 24px 20px 18px; border-bottom: 1px solid rgba(244,240,232,0.1); }
+.brand-name {
+  font-family: var(--mono); font-size: 1.2rem; font-weight: 800; color: #F7F7F7;
+  line-height: 1.1; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.brand-sub { font-size: 0.6rem; letter-spacing: 0.34em; text-transform: lowercase; color: var(--mint); margin-top: 5px; }
+
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 0 16px; }
+.sidebar-nav::-webkit-scrollbar { width: 3px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+.nav-section-label { font-size: 0.53rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(244,240,232,0.3); padding: 12px 20px 6px; }
+
+.nav-parent {
+  display: flex; align-items: center; gap: 0;
+  padding: 8px 16px 8px 16px; cursor: pointer;
+  color: rgba(244,240,232,0.7); font-size: 0.72rem; letter-spacing: 0.03em;
+  transition: background 0.14s, color 0.14s; border-left: 2px solid transparent;
+  user-select: none;
+}
+.nav-parent:hover { background: rgba(244,240,232,0.06); color: var(--parchment); }
+.nav-parent.active { color: var(--parchment); border-left-color: var(--terracotta); background: rgba(244,240,232,0.08); }
+.nav-label { flex: 1; }
+.nav-toggle { font-size: 0.55rem; opacity: 0.4; transition: transform 0.18s; margin-left: 4px; }
+.nav-parent.expanded .nav-toggle { transform: rotate(180deg); }
+.has-code-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--terracotta); flex-shrink: 0; margin-left: 6px; }
+
+.nav-children { display: none; }
+.nav-children.open { display: block; }
+.nav-child {
+  display: flex; align-items: center;
+  padding: 7px 16px 7px 34px; cursor: pointer;
+  color: rgba(244,240,232,0.52); font-size: 0.68rem;
+  border-left: 2px solid transparent; transition: background 0.12s, color 0.12s;
+  user-select: none;
+}
+.nav-child:hover { color: rgba(244,240,232,0.85); background: rgba(244,240,232,0.05); }
+.nav-child.active { color: var(--parchment); border-left-color: var(--terracotta); background: rgba(244,240,232,0.08); }
+.nav-child .nav-label { flex: 1; }
+
+.sidebar-footer { padding: 14px 16px; border-top: 1px solid rgba(244,240,232,0.1); }
+.btn-export {
+  width: 100%; font-family: var(--mono); font-size: 0.63rem; letter-spacing: 0.12em;
+  text-transform: uppercase; background: var(--mint); color: var(--stage); border: none;
+  border-radius: 2px; padding: 10px 16px; cursor: pointer; transition: background 0.16s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-weight: 700;
+}
+.btn-export:hover { background: #9ad2c9; }
+.btn-export:active { transform: scale(0.98); }
+
+/* MAIN */
+#main {
+  margin-left: var(--sidebar-w); flex: 1; height: 100vh; overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+
+/* TOPBAR */
+#topbar {
+  position: sticky; top: 0; z-index: 50; background: transparent;
+  border-bottom: 1px solid rgba(247,247,247,0.1); padding: 0 36px; height: 54px;
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+#page-breadcrumb { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(247,247,247,0.55); }
+#page-breadcrumb strong { color: #F7F7F7; font-weight: 700; }
+.btn-sm {
+  font-family: var(--mono); font-size: 0.61rem; font-weight: 500; letter-spacing: 0.11em;
+  text-transform: uppercase; padding: 7px 16px; border-radius: 2px; cursor: pointer; transition: all 0.14s; border: none;
+}
+.btn-sm-ghost { background: transparent; color: #F7F7F7; border: 1px solid rgba(247,247,247,0.45); }
+.btn-sm-ghost:hover { background: rgba(247,247,247,0.08); color: #F7F7F7; }
+.btn-sm-ghost.on { background: rgba(247,247,247,0.14); color: #F7F7F7; }
+
+/* ADMIN PANEL */
+#admin-panel {
+  background: rgba(247,247,247,0.98); border: 1px solid rgba(5,42,97,0.1);
+  padding: 20px 36px 22px; margin: 16px 36px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+.admin-label { font-size: 0.59rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--terracotta); margin-bottom: 10px; font-weight: 500; }
+#source-textarea {
+  width: 100%; min-height: 150px; max-height: 300px; font-family: var(--mono); font-size: 0.68rem;
+  line-height: 1.65; background: white; border: 1px solid var(--forest-rule); border-radius: 2px;
+  padding: 13px 15px; color: var(--ink); resize: vertical; outline: none; transition: border-color 0.18s;
+}
+#source-textarea:focus { border-color: var(--forest-mid); }
+.admin-actions { display: flex; gap: 10px; margin-top: 11px; align-items: center; flex-wrap: wrap; }
+#admin-status { font-size: 0.64rem; color: rgba(28,28,26,0.4); }
+
+/* CONTENT */
+#content-area { flex: 1; padding: 30px 36px 80px; min-height: 0; }
+
+/* STATES */
+.empty-page {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 360px; text-align: center; background: rgba(247,247,247,0.97);
+  border: 1px solid rgba(5,42,97,0.12); box-shadow: 0 12px 26px rgba(0,0,0,0.16);
+  padding: 36px 28px;
+}
+.empty-icon { font-size: 2rem; margin-bottom: 12px; opacity: 0.25; display: block; }
+.empty-title { font-family: var(--serif); font-size: 1.9rem; font-weight: 600; color: rgba(5,42,97,0.75); margin-bottom: 8px; letter-spacing: 0.04em; }
+.empty-sub { font-size: 0.69rem; color: rgba(28,28,26,0.3); line-height: 1.7; letter-spacing: 0.02em; }
+.empty-cta {
+  margin-top: 18px; font-family: var(--mono); font-size: 0.63rem; letter-spacing: 0.12em;
+  text-transform: uppercase; padding: 9px 20px; background: var(--mint); color: var(--stage);
+  border: none; border-radius: 2px; cursor: pointer; transition: background 0.14s;
+}
+.empty-cta:hover { background: #9ad2c9; }
+
+/* SWAP AREA */
+#s-swap {
+  background: rgba(247,247,247,0.98);
+  border: 1px solid rgba(5,42,97,0.12);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.16);
+  padding: 26px 26px 22px;
+}
+.page-title-row { margin-bottom: 22px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.page-title { font-family: var(--serif); font-size: 2rem; font-weight: 600; color: var(--forest); letter-spacing: 0.03em; text-transform: uppercase; }
+.page-stats { font-size: 0.61rem; color: rgba(5,42,97,0.46); letter-spacing: 0.14em; text-transform: uppercase; }
+
+/* TABS */
+.tab-bar { display: flex; border-bottom: 1px solid rgba(5,42,97,0.16); margin-bottom: 18px; }
+.tab-btn {
+  font-family: var(--mono); font-size: 0.63rem; letter-spacing: 0.13em; text-transform: uppercase;
+  padding: 9px 20px; background: none; border: none; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; cursor: pointer; color: rgba(5,42,97,0.5); transition: all 0.14s;
+}
+.tab-btn:hover { color: var(--forest); }
+.tab-btn.active { color: var(--forest); border-bottom-color: var(--mint); font-weight: 700; }
+.tab-count { display: inline-block; background: var(--forest-dim); color: var(--forest); border-radius: 10px; padding: 1px 7px; font-size: 0.56rem; margin-left: 5px; }
+.tab-btn.active .tab-count { background: var(--mint); color: var(--stage); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* TABLE */
+.table-scroll { overflow-x: auto; border: 1px solid var(--forest-rule); border-radius: 3px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.69rem; }
+thead { background: #EEF2F6; color: var(--forest); }
+th { padding: 9px 13px; font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.56rem; text-align: left; white-space: nowrap; }
+tbody tr { border-bottom: 1px solid var(--forest-rule); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #F5F8FB; }
+td { padding: 10px 13px; vertical-align: top; }
+.td-num { color: rgba(28,28,26,0.28); font-size: 0.59rem; width: 30px; text-align: center; vertical-align: middle; }
+
+.td-thumb img { width: 52px; height: 40px; object-fit: cover; border-radius: 2px; border: 1px solid var(--forest-rule); display: block; transition: transform 0.16s; cursor: zoom-in; }
+.td-thumb img:hover { transform: scale(1.1); }
+.td-thumb .no-img { width: 52px; height: 40px; background: rgba(45,74,62,0.07); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; color: rgba(28,28,26,0.25); border: 1px solid var(--forest-rule); }
+
+.field-group { display: flex; flex-direction: column; gap: 4px; }
+.field-current { font-size: 0.63rem; color: rgba(28,28,26,0.38); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 230px; cursor: pointer; transition: color 0.13s; }
+.field-current:hover { color: var(--ink); }
+.field-current.wrap { white-space: normal; word-break: break-word; max-width: 230px; }
+
+input[type="text"] {
+  font-family: var(--mono); font-size: 0.67rem; padding: 6px 10px;
+  border: 1px solid var(--forest-rule); border-radius: 2px;
+  background: #FAFAF8; color: var(--ink); outline: none; width: 100%; min-width: 155px;
+  transition: border-color 0.15s, background 0.15s;
+}
+input[type="text"]:focus { border-color: var(--forest-mid); background: white; }
+input[type="text"].has-value { border-color: var(--mint); background: #F1FBF8; }
+
+.url-badge { display: inline-block; font-size: 0.50rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 6px; border-radius: 10px; margin-bottom: 3px; }
+.badge-cloudinary { background: rgba(45,74,62,0.10); color: var(--forest); border: 1px solid rgba(45,74,62,0.18); }
+.badge-pixieset   { background: rgba(196,103,58,0.10); color: var(--terra-dim); border: 1px solid rgba(196,103,58,0.2); }
+.badge-other      { background: rgba(28,28,26,0.06); color: rgba(28,28,26,0.4); border: 1px solid rgba(28,28,26,0.11); }
+.copy-tag { font-size: 0.54rem; letter-spacing: 0.09em; text-transform: uppercase; color: rgba(28,28,26,0.28); margin-bottom: 3px; }
+.tbl-empty { text-align: center; padding: 32px; color: rgba(28,28,26,0.28); font-size: 0.67rem; }
+
+/* SAVE ROW */
+.save-row { display: flex; gap: 12px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono);
+  font-size: 0.64rem; font-weight: 500; letter-spacing: 0.11em; text-transform: uppercase;
+  border: none; border-radius: 2px; padding: 10px 20px; cursor: pointer; transition: all 0.15s;
+}
+.btn-primary { background: var(--forest); color: var(--parchment); }
+.btn-primary:hover { background: #0C3D79; }
+.btn-ghost { background: transparent; color: var(--forest); border: 1px solid var(--forest); }
+.btn-ghost:hover { background: var(--forest); color: var(--parchment); }
+.btn:active { transform: scale(0.98); }
+#save-status { font-size: 0.64rem; letter-spacing: 0.04em; min-height: 20px; }
+#save-status.ok  { color: var(--forest-mid); }
+#save-status.err { color: var(--terracotta); }
+
+@keyframes flashbtn { 0% { background: var(--terracotta); } 100% { background: var(--forest); } }
+.flash { animation: flashbtn 0.5s ease forwards; }
+
+@media (max-width: 980px) {
+  :root { --sidebar-w: 180px; }
+  #topbar, #content-area { padding-left: 18px; padding-right: 18px; }
+  #admin-panel { margin: 12px 18px 0; padding: 14px; }
+  #s-swap { padding: 14px; }
+  .page-title { font-size: 1.45rem; }
+}
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-name">RS</div>
+    <div class="brand-sub">rutta studio</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Site Pages</div>
+    <div id="nav-tree"></div>
+  </div>
+  <div class="sidebar-footer">
+    <button class="btn-export" onclick="exportFile()">&#8595;&nbsp; Export Updated File</button>
+  </div>
+</aside>
+
+<div id="main">
+  <div id="topbar">
+    <div id="page-breadcrumb">Select a page</div>
+    <div>
+      <button class="btn-sm btn-sm-ghost" id="edit-btn" style="display:none" onclick="toggleAdmin()">Edit Source</button>
+    </div>
+  </div>
+
+  <div id="admin-panel" style="display:none">
+    <div class="admin-label">Source Code — paste the full Pixieset custom code block for this page</div>
+    <textarea id="source-textarea" placeholder="Paste full custom code here…" spellcheck="false"></textarea>
+    <div class="admin-actions">
+      <button class="btn btn-primary" onclick="saveSource()">Save &amp; Extract</button>
+      <button class="btn btn-ghost"   onclick="closeAdmin()">Cancel</button>
+      <span id="admin-status"></span>
+    </div>
+  </div>
+
+  <div id="content-area">
+
+    <div id="s-welcome" class="empty-page">
+      <span class="empty-icon">&#8592;</span>
+      <div class="empty-title">Select a page</div>
+      <div class="empty-sub">Choose any page from the sidebar<br>to view and edit its content.</div>
+    </div>
+
+    <div id="s-empty" class="empty-page" style="display:none">
+      <span class="empty-icon">&#9633;</span>
+      <div class="empty-title">No code yet</div>
+      <div class="empty-sub">Paste this page's Pixieset custom code block<br>to get started.</div>
+      <button class="empty-cta" onclick="openAdmin()">+ Add Source Code</button>
+    </div>
+
+    <div id="s-swap" style="display:none">
+      <div class="page-title-row">
+        <div class="page-title" id="swap-title"></div>
+        <div class="page-stats" id="swap-stats"></div>
+      </div>
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="images" onclick="switchTab(this)">
+          Images &amp; Captions <span class="tab-count" id="tc-img">0</span>
+        </button>
+        <button class="tab-btn" data-tab="copy" onclick="switchTab(this)">
+          Page Copy <span class="tab-count" id="tc-copy">0</span>
+        </button>
+      </div>
+      <div id="tab-images" class="tab-panel active">
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th class="td-num">#</th>
+              <th style="width:62px">Now</th>
+              <th style="min-width:210px">Image URL</th>
+              <th style="min-width:170px">Caption</th>
+              <th style="min-width:170px">Alt Text</th>
+              <th style="width:110px">Row</th>
+            </tr></thead>
+            <tbody id="img-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="tab-copy" class="tab-panel">
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th class="td-num">#</th>
+              <th style="min-width:270px">Current Text</th>
+              <th style="min-width:270px">Replacement</th>
+            </tr></thead>
+            <tbody id="copy-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="save-row">
+        <button class="btn btn-primary" onclick="saveChanges()">&#10003;&nbsp; Save Changes</button>
+        <button class="btn btn-ghost"   onclick="addImageRow()">+ Add Row</button>
+        <button class="btn btn-ghost"   onclick="clearInputs()">Clear</button>
+        <span id="save-status"></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const PAGES = [
+  { id: 'home',             label: 'Home' },
+  { id: 'about',            label: 'About', children: [
+      { id: 'faq',          label: 'FAQ' },
+      { id: 'testimonials', label: 'Testimonials' },
+      { id: 'contact',      label: 'Contact' },
+  ]},
+  { id: 'services',         label: 'Services', children: [
+      { id: 'collaborative-portraits', label: 'Collaborative Portraits' },
+      { id: 'intimate-weddings',       label: 'Intimate Weddings' },
+      { id: 'documentation',           label: 'Documentation' },
+      { id: 'storytelling',            label: 'Storytelling' },
+  ]},
+  { id: 'art-prints',       label: 'Art Prints' },
+  { id: 'events-workshops', label: 'Events & Workshops', children: [
+      { id: 'creative-community-works', label: 'Creative & Community Works' },
+  ]},
+];
+
+// Flat lookup helpers
+const PAGE_MAP = {};
+const PARENT_MAP = {};
+(function flattenPages() {
+  PAGES.forEach(p => {
+    PAGE_MAP[p.id] = p.label;
+    if (p.children) p.children.forEach(c => { PAGE_MAP[c.id] = c.label; PARENT_MAP[c.id] = p.label; });
+  });
+})();
+
+// ── DATA STORE ─────────────────────────────────────────────────────────────
+// WFTOOL_S and WFTOOL_E markers used by export — do not rename
+const PAGE_CODES = /*WFTOOL_S*/{"home":"<style>\n/* --- RESET & LAYOUT --- */\nbody { \n  margin: 0; padding: 0; font-family: 'Helvetica Neue', sans-serif; overflow-x: hidden; \n  background-color: #F5F7FA; color: #1a2b3c; \n}\n\n.hero-container {\n  position: relative; width: 100%; height: 100vh;\n  display: flex; justify-content: center; align-items: center;\n  overflow: hidden;\n}\n\n/* --- BACKGROUND LAYERS --- */\n.editorial-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }\n\n/* FILM GRAIN ONLY - No Lines */\n.film-grain {\n  position: absolute; width: 100%; height: 100%; opacity: 0.05; pointer-events: none;\n  background-image: url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\");\n  mix-blend-mode: multiply;\n}\n\n/* --- FLOATING IMAGES --- */\n.floating-image {\n  position: absolute; \n  background-size: cover; background-position: center; background-color: #ccc; \n  opacity: 0; z-index: 2; \n  border: 4px solid #fff; \n  box-shadow: 0 10px 30px rgba(0,0,0,0.15);\n  animation: floatToLock 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;\n}\n\n/* LEFT IMAGE */\n.img-left { \n  background-image: url('https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538759/RJFAM25-35_hzpikr.jpg');\n  width: 18vw; height: 26vw; \n  left: 2%; bottom: -50%; \n  --end-bottom: 25%; --end-rotation: -3deg; animation-delay: 0.2s;\n}\n\n/* RIGHT IMAGE */\n.img-right { \n  background-image: url('https://res.cloudinary.com/dncbf9zy4/image/upload/v1772822258/Screenshot_2026-03-06_at_1.37.20_PM_m9jukv.png');\n  width: 18vw; height: 26vw; \n  right: 2%; bottom: -50%;\n  --end-bottom: 30%; --end-rotation: 2deg; animation-delay: 0.8s;\n}\n\n@keyframes floatToLock {\n  0% { bottom: -50%; opacity: 0; transform: rotate(0deg) scale(0.95); }\n  100% { bottom: var(--end-bottom); opacity: 0.8; transform: rotate(var(--end-rotation)) scale(1); }\n}\n\n/* --- HERO CONTENT --- */\n.hero-content {\n  position: relative; z-index: 10;\n  text-align: center; \n  width: 100%; max-width: 480px; \n  animation: fadeIn 1s ease-out 0.5s forwards; opacity: 0;\n}\n@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }\n\n.logo-wrapper {\n  position: relative;\n  display: flex; justify-content: center; align-items: center;\n  height: auto;\n}\n\n.brand-name {\n  position: relative; z-index: 2;\n  font-size: 3rem; font-weight: 300; letter-spacing: 4px;\n  text-transform: lowercase; color: #1a2b3c; margin: 0;\n  white-space: nowrap; \n}\n\n/* --- ORBIT CIRCLES --- */\n.orbit-container {\n  position: absolute; top: 50%; left: 50%;\n  transform: translate(-50%, -50%);\n  width: 0; height: 0; pointer-events: none; z-index: 1;\n}\n\n.orbit-ring {\n  position: absolute; top: 50%; left: 50%;\n  transform: translate(-50%, -50%) scale(0);\n  border-radius: 50%; opacity: 0; background: transparent;\n  animation: expandLock 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;\n}\n\n.ring-1 { width: 290px; height: 290px; border: 1px solid #7CBAB0; animation-delay: 0.1s; }\n.ring-2 { width: 315px; height: 315px; border: 1px solid #3A91B5; animation-delay: 0.2s; }\n.ring-3 { width: 340px; height: 340px; border: 1px solid #11609E; animation-delay: 0.3s; }\n\n@keyframes expandLock {\n  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }\n  100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }\n}\n\n/* --- TEXT & CTA --- */\n.text-area {\n  margin-top: 180px; \n  display: flex; flex-direction: column; align-items: center; gap: 20px;\n}\n.intro-paragraph {\n  font-size: 1rem; line-height: 1.6; color: #5a6b7c; font-weight: 400; margin: 0; \n  max-width: 100%; \n}\n.cta-button {\n  display: inline-block; padding: 14px 28px;\n  border: 1px solid rgba(26, 43, 60, 0.3);\n  color: #1a2b3c; text-decoration: none;\n  font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;\n  transition: all 0.3s ease;\n}\n.cta-button:hover { background: #1a2b3c; color: #fff; border-color: #1a2b3c; }\n\n\n/* --- MOBILE OVERHAUL --- */\n@media screen and (max-width: 768px) {\n  .img-right {\n    top: 5vh; right: -8%; width: 30vw; height: 38vw;\n    transform: rotate(8deg) !important; animation: fadeInImg 1.5s ease-out forwards;\n  }\n  .img-left {\n    bottom: 5vh; left: -8%; width: 32vw; height: 40vw;\n    transform: rotate(-8deg) !important; animation: fadeInImg 1.5s ease-out forwards;\n  }\n  @keyframes fadeInImg { from { opacity: 0; } to { opacity: 0.9; } }\n\n  .hero-content { width: 100%; max-width: 100%; padding: 0 20px; box-sizing: border-box; }\n  .logo-wrapper { transform: scale(0.45); margin-bottom: -90px; }\n  .text-area { margin-top: 160px; gap: 15px; }\n  .intro-paragraph { font-size: 0.9rem; max-width: 80%; }\n  .cta-button { font-size: 0.7rem; padding: 12px 20px; }\n}\n<\/style>\n\n<section class=\"hero-container\">\n\n  <div class=\"editorial-bg\">\n    <div class=\"film-grain\"></div>\n    \n    <div class=\"floating-image img-left\"></div>\n    <div class=\"floating-image img-right\"></div>\n  </div>\n\n  <div class=\"hero-content\">\n    \n    <div class=\"logo-wrapper\">\n      <h1 class=\"brand-name\">rutta studio</h1>\n      \n      <div class=\"orbit-container\">\n        <div class=\"orbit-ring ring-1\"></div>\n        <div class=\"orbit-ring ring-2\"></div>\n        <div class=\"orbit-ring ring-3\"></div>\n      </div>\n    </div>\n    \n    <div class=\"text-area\">\n      <p class=\"intro-paragraph\">\n        a celebration of what makes us beautifully human.\n      </p>\n      <a href=\"/contact\" class=\"cta-button\">Start the Process</a>\n    </div>\n  </div>\n\n</section>","services":"<div id=\"ada-wrapper\">\n\n  <section class=\"gallery-section\">\n    <div class=\"gallery-intro\">\n      <p class=\"journal-date\">// ARCHIVE INDEX 2026</p>\n      <h1>The Collections</h1>\n    </div>\n\n    <div class=\"light-table\">\n      \n      <div class=\"archive-stack\">\n        <div class=\"stack-container\" id=\"stack-portraits\" onclick=\"shuffleStack('stack-portraits')\">\n          <div class=\"tape-piece\"></div>\n          <div class=\"photo-card layer-3\" style=\"z-index: 2;\"><img src=\"https://lh3.googleusercontent.com/d/1Hb-8XVyB9cHL_n0qD3qx0nQzBHqhM-FQ\"></div>\n          <div class=\"photo-card layer-2\" style=\"z-index: 5;\"><img src=\"https://lh3.googleusercontent.com/d/1BBm0oUHsWZI5LcnsySYIm56iJfLSOY0_\"></div>\n          <div class=\"photo-card layer-1 active\" style=\"z-index: 10;\"><img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/v1772821836/_DSC7730_whcf2e.jpg\"></div>\n        </div>\n        <div class=\"stack-footer\">\n          <div class=\"stack-label\">\n            <span class=\"category-num\">01.</span>\n            <h3>Portraits</h3>\n          </div>\n          <a href=\"/portraits\" class=\"explore-stack-btn\">EXPLORE THE GALLERY ⟶</a>\n        </div>\n      </div>\n\n      <div class=\"archive-stack offset-stack\">\n        <div class=\"stack-container\" id=\"stack-weddings\" onclick=\"shuffleStack('stack-weddings')\">\n          <div class=\"tape-piece\"></div>\n          <div class=\"photo-card layer-3\" style=\"z-index: 2;\"><img src=\"https://lh3.googleusercontent.com/d/1edr1mc8phVfc5ai67wZlNq1CgqA_JxML\"></div>\n          <div class=\"photo-card layer-2\" style=\"z-index: 5;\"><img src=\"https://lh3.googleusercontent.com/d/1hM2oTODzW4UvCjD4hlkaUas0LG1LfJYZ\"></div>\n          <div class=\"photo-card layer-1 active\" style=\"z-index: 10;\"><img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/v1772821858/_DSC7707_exmf20.jpg\"></div>\n        </div>\n        <div class=\"stack-footer\">\n          <div class=\"stack-label\">\n            <span class=\"category-num\">02.</span>\n            <h3>Weddings</h3>\n          </div>\n          <a href=\"/weddings\" class=\"explore-stack-btn\">EXPLORE THE GALLERY ⟶</a>\n        </div>\n      </div>\n\n      <div class=\"archive-stack\">\n        <div class=\"stack-container\" id=\"stack-creative\" onclick=\"shuffleStack('stack-creative')\">\n          <div class=\"tape-piece\"></div>\n          <div class=\"photo-card layer-3\" style=\"z-index: 2;\"><img src=\"https://lh3.googleusercontent.com/d/1LH5hUXGneJxEzGHdY3UiqdcANqmjOzY_\"></div>\n          <div class=\"photo-card layer-2\" style=\"z-index: 5;\"><img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/v1772821834/clay-export_2026-02-27_15.11.38_l1ztet.jpg\"></div>\n          <div class=\"photo-card layer-1 active\" style=\"z-index: 10;\"><img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/v1772821834/_DSC3899_ejuyws.jpg\"></div>\n        </div>\n        <div class=\"stack-footer\">\n          <div class=\"stack-label\">\n            <span class=\"category-num\">03.</span>\n            <h3>Creative</h3>\n          </div>\n          <a href=\"/creative\" class=\"explore-stack-btn\">EXPLORE THE GALLERY ⟶</a>\n        </div>\n      </div>\n      \n    </div>\n  </section>\n\n</div>\n\n<style>\n/* --- 1. GLOBAL BRAND OVERRIDES --- */\n#ada-wrapper {\n  --rs-white: #F7F7F7;\n  --rs-teal-light: #7CBAB0;\n  --rs-blue-muted: #3A91B5;\n  --rs-dusk: #052A61;\n  --rs-black: #000000;\n  background-color: var(--rs-white);\n  color: var(--rs-dusk);\n  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;\n  padding: 100px 5%;\n  position: relative;\n  overflow: hidden;\n}\n\n#ada-wrapper h1, #ada-wrapper h3 { font-weight: 300; margin: 0; color: var(--rs-dusk); }\n\n#ada-wrapper .gallery-intro { margin-bottom: 80px; text-align: left; }\n#ada-wrapper .journal-date { font-family: 'Courier New', monospace; font-size: 0.75rem; letter-spacing: 2px; color: var(--rs-blue-muted); }\n#ada-wrapper .gallery-intro h1 { font-size: 3.5rem; letter-spacing: -2px; margin-top: 10px; text-transform: uppercase; }\n\n#ada-wrapper .light-table {\n  display: grid;\n  grid-template-columns: repeat(3, 1fr);\n  gap: 60px;\n  max-width: 1400px;\n  margin: 0 auto;\n}\n\n.archive-stack { position: relative; width: 100%; }\n.offset-stack { margin-top: 100px; }\n\n.stack-container {\n  position: relative;\n  height: 520px;\n  cursor: pointer;\n  margin-bottom: 30px;\n}\n\n.photo-card {\n  position: absolute;\n  top: 0; left: 0;\n  width: 100%;\n  background: #fff;\n  padding: 12px 12px 45px;\n  border: 1px solid #ddd;\n  box-shadow: 2px 2px 12px rgba(5, 42, 97, 0.06);\n  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);\n  transform-origin: center center;\n}\n\n.photo-card img {\n  width: 100%;\n  aspect-ratio: 4/5;\n  object-fit: cover;\n  filter: grayscale(100%);\n  transition: filter 0.5s ease;\n  display: block;\n}\n\n.photo-card.active img { filter: grayscale(0%); }\n\n.layer-1 { transform: rotate(0deg); }\n.layer-2 { transform: rotate(-3deg) translate(-8px, -4px); }\n.layer-3 { transform: rotate(4deg) translate(12px, -8px); }\n\n.photo-card.shuffling {\n  transform: translateX(110%) rotate(8deg) !important;\n  opacity: 0;\n  z-index: 50 !important;\n}\n\n.tape-piece {\n  position: absolute; top: -15px; left: 50%; transform: translateX(-50%);\n  width: 80px; height: 26px; \n  background: rgba(124, 186, 176, 0.4);\n  z-index: 100;\n  pointer-events: none;\n}\n\n.stack-footer { border-top: 1px solid var(--rs-dusk); padding-top: 20px; }\n.category-num { font-family: 'Courier New', monospace; font-size: 0.8rem; color: var(--rs-blue-muted); }\n.stack-label h3 { font-size: 1.5rem; text-transform: uppercase; margin: 5px 0; letter-spacing: 2px; }\n\n.explore-stack-btn {\n  display: inline-block;\n  margin-top: 15px;\n  padding: 12px 0;\n  color: var(--rs-dusk);\n  text-decoration: none;\n  font-size: 0.75rem;\n  font-weight: 700;\n  letter-spacing: 2px;\n  width: 100%;\n  transition: all 0.3s ease;\n  border-bottom: 1px solid transparent;\n}\n\n.explore-stack-btn:hover { \n  letter-spacing: 4px; \n  color: var(--rs-blue-muted);\n  border-bottom: 1px solid var(--rs-blue-muted);\n}\n\n@media screen and (max-width: 1024px) {\n  #ada-wrapper .light-table { grid-template-columns: 1fr; gap: 100px; }\n  .offset-stack { margin-top: 0; }\n  .stack-container { height: 600px; }\n}\n<\/style>\n\n<script>\n(function() {\n  window.shuffleStack = function(stackId) {\n    const stack = document.getElementById(stackId);\n    const cards = Array.from(stack.querySelectorAll('.photo-card'));\n    const topCard = stack.querySelector('.photo-card.active');\n    \n    if (!topCard || topCard.classList.contains('shuffling')) return;\n\n    topCard.classList.add('shuffling');\n\n    setTimeout(() => {\n      topCard.classList.remove('active', 'shuffling');\n      \n      const currentIndex = cards.indexOf(topCard);\n      const nextIndex = (currentIndex + 1) % cards.length;\n      \n      cards.forEach((card) => {\n        if (card === topCard) {\n          card.style.zIndex = \"1\";\n        } else {\n          let z = parseInt(card.style.zIndex);\n          card.style.zIndex = (z + 1).toString();\n        }\n      });\n\n      cards[nextIndex].classList.add('active');\n    }, 550);\n  };\n})();\n<\/script>","collaborative-portraits":"<link rel=\"stylesheet\" href=\"https://use.typekit.net/ufa5wuy.css\">\n\n<div id=\"ada-wrapper\" class=\"editorial-wrapper\">\n  <div class=\"minimal-grid\" id=\"editorial-grid\"></div>\n\n<div id=\"quick-lightbox\" class=\"lightbox-overlay\">\n    <div class=\"lightbox-content\">\n      <img id=\"lightbox-img\" src=\"\" alt=\"Expanded View\">\n      \n      <div class=\"lightbox-info-row\">\n        <div class=\"lightbox-meta\" id=\"lightbox-caption\"></div>\n        \n        <div class=\"lightbox-actions\">\n          <a href=\"/booking\" class=\"lightbox-cta\">Book a Session</a>\n          <a href=\"/shop\" class=\"lightbox-cta secondary\">Explore Fine Art Prints</a>\n        </div>\n      </div>\n\n      <button class=\"close-btn\" onclick=\"closeLightbox()\">×</button>\n    </div>\n  </div>\n</div>\n\n<style>\n:root {\n  --rs-dusk: #1A2B3C;\n  --rs-white: #F7F7F7;\n  --rs-teal: #7CBAB0;\n  --rs-font: \"mendl-sans-variable\", sans-serif;\n  --ease-silk: cubic-bezier(0.16, 1, 0.3, 1);\n}\n\n#ada-wrapper.editorial-wrapper {\n  background-color: var(--rs-dusk);\n  color: var(--rs-white);\n  padding: 100px 8% 200px;\n  font-family: var(--rs-font);\n  min-height: 100vh;\n}\n\n.minimal-grid {\n  column-count: 2;\n  column-gap: 80px;\n  max-width: 1400px;\n  margin: 0 auto;\n}\n.lightbox-info-row {\n  display: flex;\n  justify-content: space-between;\n  align-items: flex-end;\n  margin-top: 20px;\n  width: 100%;\n  max-width: 85vw;\n}\n\n.lightbox-actions {\n  display: flex;\n  gap: 15px;\n}\n\n.lightbox-cta {\n  padding: 12px 24px;\n  font-family: var(--rs-font);\n  font-size: 0.75rem;\n  text-transform: uppercase;\n  letter-spacing: 2px;\n  text-decoration: none;\n  transition: all 0.3s ease;\n  border: 1px solid var(--rs-teal);\n  color: var(--rs-white);\n  background: transparent;\n}\n\n.lightbox-cta:hover {\n  background: var(--rs-teal);\n  color: var(--rs-dusk);\n}\n\n.lightbox-cta.secondary {\n  border-color: rgba(247, 247, 247, 0.3);\n}\n\n.lightbox-cta.secondary:hover {\n  border-color: var(--rs-white);\n  background: var(--rs-white);\n}\n\n/* Ensure mobile compatibility */\n@media screen and (max-width: 768px) {\n  .lightbox-info-row {\n    flex-direction: column;\n    align-items: center;\n    gap: 20px;\n    text-align: center;\n  }\n}\n/* --- REVEAL ANIMATIONS --- */\n.reveal-item {\n  opacity: 0;\n  transform: translateY(30px);\n  transition: opacity 1.8s var(--ease-silk), transform 1.8s var(--ease-silk);\n  break-inside: avoid;\n  margin-bottom: 120px;\n}\n\n.col-left.visible {\n  opacity: 1;\n  transform: translateY(0);\n  transition-delay: 0.1s;\n}\n\n.col-right.visible {\n  opacity: 1;\n  transform: translateY(0);\n  transition-delay: 0.4s;\n}\n\n/* --- IMAGE STYLING --- */\n.card-inner {\n  position: relative;\n  overflow: hidden;\n  cursor: zoom-in;\n  background: #041f46;\n}\n\n.card-inner img {\n  width: 100%; \n  display: block;\n  filter: grayscale(20%);\n  transition: transform 2s var(--ease-silk), filter 1s ease;\n}\n\n.grid-card:hover .card-inner img {\n  transform: scale(1.03);\n  filter: grayscale(0%);\n}\n\n.card-meta {\n  margin-top: 24px;\n  padding-top: 12px;\n  border-top: 1px solid rgba(124, 186, 176, 0.2); /* Subtle teal line */\n  \n  font-family: 'Courier New', monospace;\n  font-size: 0.85rem;      /* Slightly larger */\n  font-weight: 600;        /* Bolder weight */\n  color: var(--rs-teal);\n  letter-spacing: 3px;     /* More air between letters */\n  text-transform: uppercase;\n  \n  opacity: 1;              /* Full brightness */\n  display: flex;\n  justify-content: space-between; /* Pushes FIG and NAME to opposite sides */\n}\n/* --- LIGHTBOX --- */\n.lightbox-overlay {\n  position: fixed; inset: 0;\n  background: #1A2B3C;\n  backdrop-filter: blur(15px);\n  z-index: 10000;\n  display: flex; justify-content: center; align-items: center;\n  opacity: 0; pointer-events: none;\n  transition: opacity 0.6s ease;\n}\n.lightbox-overlay.active { opacity: 1; pointer-events: all; }\n#lightbox-img { max-height: 85vh; max-width: 85vw; object-fit: contain; }\n.close-btn { position: absolute; top: 20px; right: 30px; background: none; border: none; color: white; font-size: 3rem; cursor: pointer; }\n\n/* --- RESPONSIVE --- */\n@media screen and (max-width: 1024px) { .minimal-grid { column-gap: 40px; } }\n@media screen and (max-width: 768px) { \n  .minimal-grid { column-count: 1; }\n  .col-right.visible { transition-delay: 0.1s; }\n  #ada-wrapper.editorial-wrapper { padding-top: 60px; }\n}\n<\/style>\n\n<script>\n  const newUrls = [\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538715/_DSC5265-Edit_dtgse2.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538715/DSC03233-Edit-Edit-Edit-Edit_fjch8o.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538715/_DSC8990-Edit_tdrbfm.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538715/Alex01_l9onjr.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538715/Camilla01_ls48vt.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538714/Alex02_xowhnk.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538713/_DSC9440-Enhanced-NR_webajk.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538713/Chris02_oftqnb.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538713/Alex03_xg1ump.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538713/Sandra04_mivlbh.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538713/Camilla02_nkzn7s.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538713/Chris01_wtskzp.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538712/_DSC6732_ro84at.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538712/Norine01_n8cluz.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538711/_DSC9469-Edit-Edit_d2otyp.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538711/MJ01_jb2ppw.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538711/Sandra05_qq1t3q.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538710/MaryJane01_u7dj12.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538710/FranBinocularRedotif_gy3rvj.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538710/Sandra02_bpiuc0.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538710/Norine02_wrxcth.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538710/MJ02_kmiwy2.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538709/_DSC0851-Edit-Edit-Edit_hvquz5.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538709/_DSC7869_koob8i.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538709/_DSC5924_rbcif8.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538709/Sandra03_greiaw.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538709/_DSC7259-Edit_g64olv.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538709/Sandra01_ygq7te.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538708/_DSC9113_azuggu.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538708/_DSC5850-Edit_icb8pc.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538708/_DSC5007-Edit-Edit_f8pnhm.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538707/Karioth_Sally-6_m9r6dm.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538707/Kleinbard_Alexa-5_xvfp8w.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538707/Portrait-2_hgkvrq.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538706/_DSC8213_t8rx2j.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538706/Portrait-3_enwprm.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538706/Diane01_wvbekp.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538706/Portrait-4_hpp78l.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538706/_DSC7681_gah8rk.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538706/_DSC3800_xlf7yn.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538702/_DSC4041-Edit_kenrgl.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538700/Portrait-5_xjwvzk.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538699/_DSC5695_cbt9kw.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538698/_DSC4199-Edit_h0gzak.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538697/Craig01_z9el3u.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538697/Williams_Charlotte_wsb8fn.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538696/_DSC3230_k1r8qi.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538696/Craig02_vpitwe.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538696/Myra01_rfikjm.jpg\",\n    \"https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538691/Myra02_n8goa0.jpg\"\n  ];\n\n  // Helper to turn filename into a caption (e.g., \"Alex01\" -> \"ALEX 01\")\n  function formatCaption(url) {\n    const filename = url.split('/').pop().split('.')[0].split('_')[0];\n    return filename.replace(/([a-z])([0-9])/i, '$1 $2').toUpperCase();\n  }\n\n  // Generate the image objects\n  const editorialImages = newUrls.map((url, index) => {\n    const figNum = (index + 1).toString().padStart(2, '0');\n    return {\n      url: url,\n      meta: `FIG ${figNum}. / ${formatCaption(url)}`,\n      alt: \"Collaborative Portrait\"\n    };\n  });\n\n  // Render Grid\n  const grid = document.getElementById('editorial-grid');\n  editorialImages.forEach((img, index) => {\n    const card = document.createElement('div');\n    const columnSide = (index % 2 === 0) ? 'col-left' : 'col-right';\n    card.className = `grid-card reveal-item ${columnSide}`;\n    card.innerHTML = `\n      <div class=\"card-inner\" onclick=\"openLightbox('${img.url}', '${img.meta}')\">\n        <img src=\"${img.url}\" alt=\"${img.alt}\" loading=\"lazy\">\n        <div class=\"hover-overlay\"></div>\n      </div>\n      <div class=\"card-meta\">${img.meta}</div>\n    `;\n    grid.appendChild(card);\n  });\n\n  // Animations on scroll\n  const observer = new IntersectionObserver((entries) => {\n    entries.forEach(entry => {\n      if (entry.isIntersecting) entry.target.classList.add('visible');\n    });\n  }, { threshold: 0.05 });\n\n  document.querySelectorAll('.reveal-item').forEach(item => observer.observe(item));\n\n  // Lightbox Functions\n  const lb = {\n    overlay: document.getElementById('quick-lightbox'),\n    img: document.getElementById('lightbox-img'),\n    cap: document.getElementById('lightbox-caption')\n  };\n\n  function openLightbox(url, meta) {\n    lb.img.src = url;\n    lb.cap.textContent = meta;\n    lb.overlay.classList.add('active');\n    document.body.style.overflow = 'hidden';\n  }\n\n  function closeLightbox() {\n    lb.overlay.classList.remove('active');\n    document.body.style.overflow = 'auto';\n  }\n\n  lb.overlay.addEventListener('click', (e) => { if (e.target === lb.overlay) closeLightbox(); });\n<\/script>","art-prints":"<div id=\"ada-store-wrapper\">\n  <svg style=\"display:none;\">\n    <filter id=\"paperGrain\">\n      <feTurbulence type=\"fractalNoise\" baseFrequency=\"0.9\" numOctaves=\"3\" stitchTiles=\"stitch\"/>\n      <feColorMatrix type=\"saturate\" values=\"0\"/>\n      <feComponentTransfer>\n        <feFuncA type=\"linear\" slope=\"0.08\"/>\n      </feComponentTransfer>\n    </filter>\n  </svg>\n\n  <section class=\"store-header\">\n    <div class=\"header-content\">\n      <h1 class=\"store-title\">The Print Shop</h1>\n      <p class=\"store-subtitle\">FINE ART EDITIONS</p>\n    </div>\n    \n    <div class=\"store-controls\">\n      <div class=\"store-filters\">\n        <button class=\"filter-btn active\" data-filter=\"all\">All Editions</button>\n        <button class=\"filter-btn\" data-filter=\"sun\">Sun Prints</button>\n        <button class=\"filter-btn\" data-filter=\"structures\">Structures</button>\n        <button class=\"filter-btn\" data-filter=\"figures\">Figures</button>\n      </div>\n\n      <div class=\"store-sort\">\n        <label for=\"price-sort\">Sort by:</label>\n        <select id=\"price-sort\">\n          <option value=\"default\">Original</option>\n          <option value=\"low-high\">Price: Low to High</option>\n          <option value=\"high-low\">Price: High to Low</option>\n        </select>\n      </div>\n    </div>\n  </section>\n\n  <section class=\"store-grid\" id=\"main-store-grid\">\n    \n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"350\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-1_Small_hpcodi\" alt=\"No. 1\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Movement No. 01</div>\n        <div class=\"p-meta\"><span>Ed. of 25</span><span class=\"price\">$350</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"350\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-3_Small_n94s2a\" alt=\"No. 3\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Form No. 03</div>\n        <div class=\"p-meta\"><span>Ed. of 25</span><span class=\"price\">$350</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"450\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-42_Small_v926be\" alt=\"No. 42\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Gesture No. 42</div>\n        <div class=\"p-meta\"><span>Ed. of 15</span><span class=\"price\">$450</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"structures\" data-price=\"425\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-58_Small_uj0jvy\" alt=\"No. 58\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Structure No. 58</div>\n        <div class=\"p-meta\"><span>Ed. of 20</span><span class=\"price\">$425</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"structures\" data-price=\"410\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-41_Small_t7z82m\" alt=\"No. 41\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Pillar No. 41</div>\n        <div class=\"p-meta\"><span>Ed. of 20</span><span class=\"price\">$410</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"structures\" data-price=\"380\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-46_Small_u5pwyw\" alt=\"No. 46\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Facade No. 46</div>\n        <div class=\"p-meta\"><span>Ed. of 25</span><span class=\"price\">$380</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"sun\" data-price=\"450\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-5_Small_uom7is\" alt=\"No. 5\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Sun Study No. 05</div>\n        <div class=\"p-meta\"><span>Ed. of 15</span><span class=\"price\">$450</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"sun\" data-price=\"300\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-8_Small_r2z8m8\" alt=\"No. 8\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Exposure No. 08</div>\n        <div class=\"p-meta\"><span>Ed. of 30</span><span class=\"price\">$300</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"350\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-4_Small_osb8qf\" alt=\"No. 4\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Form No. 04</div>\n        <div class=\"p-meta\"><span>Ed. of 25</span><span class=\"price\">$350</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"sun\" data-price=\"425\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-6_Small_xizq9v\" alt=\"No. 6\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Light Bloom No. 06</div>\n        <div class=\"p-meta\"><span>Ed. of 20</span><span class=\"price\">$425</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"sun\" data-price=\"325\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-9_Small_k2p7p9\" alt=\"No. 9\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Sun Study No. 09</div>\n        <div class=\"p-meta\"><span>Ed. of 25</span><span class=\"price\">$325</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"structures\" data-price=\"350\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-11_Small_csglna\" alt=\"No. 11\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Threshold No. 11</div>\n        <div class=\"p-meta\"><span>Ed. of 25</span><span class=\"price\">$350</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"structures\" data-price=\"390\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-12_Small_s6vmhv\" alt=\"No. 12\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Archway No. 12</div>\n        <div class=\"p-meta\"><span>Ed. of 20</span><span class=\"price\">$390</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"sun\" data-price=\"440\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-16_Small_ujqjg6\" alt=\"No. 16\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Sun Study No. 16</div>\n        <div class=\"p-meta\"><span>Ed. of 15</span><span class=\"price\">$440</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"490\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-43_Small_v4lye4\" alt=\"No. 43\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">The Wait No. 43</div>\n        <div class=\"p-meta\"><span>Ed. of 12</span><span class=\"price\">$490</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"550\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-44_Small_n3p97r\" alt=\"No. 44\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Shadow Form No. 44</div>\n        <div class=\"p-meta\"><span>Ed. of 10</span><span class=\"price\">$550</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"430\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-45_Small_rbqmcm\" alt=\"No. 45\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Body No. 45</div>\n        <div class=\"p-meta\"><span>Ed. of 20</span><span class=\"price\">$430</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"475\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-48_Small_irfs_u\" alt=\"No. 48\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Movement No. 48</div>\n        <div class=\"p-meta\"><span>Ed. of 15</span><span class=\"price\">$475</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"structures\" data-price=\"350\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-49_Small_mphs_q\" alt=\"No. 49\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Concrete No. 49</div>\n        <div class=\"p-meta\"><span>Ed. of 25</span><span class=\"price\">$350</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"450\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-50_Small_m-aqdp\" alt=\"No. 50\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Gesture No. 50</div>\n        <div class=\"p-meta\"><span>Ed. of 20</span><span class=\"price\">$450</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"structures\" data-price=\"380\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-51_Small_ynpir5\" alt=\"No. 51\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Urban No. 51</div>\n        <div class=\"p-meta\"><span>Ed. of 25</span><span class=\"price\">$380</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"sun\" data-price=\"500\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-52_Small_rbdsqb\" alt=\"No. 52\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Radiance No. 52</div>\n        <div class=\"p-meta\"><span>Ed. of 10</span><span class=\"price\">$500</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"sun\" data-price=\"325\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-53_Small_ujkvdr\" alt=\"No. 53\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Study No. 53</div>\n        <div class=\"p-meta\"><span>Ed. of 30</span><span class=\"price\">$325</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"sun\" data-price=\"600\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-54_Small_ufbuay\" alt=\"No. 54\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Pure Light No. 54</div>\n        <div class=\"p-meta\"><span>Ed. of 5</span><span class=\"price\">$600</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"sun\" data-price=\"450\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-55_Small_aonn9e\" alt=\"No. 55\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Sun Study No. 55</div>\n        <div class=\"p-meta\"><span>Ed. of 20</span><span class=\"price\">$450</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"550\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-56_Small_b_crpi\" alt=\"No. 56\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Figure No. 56</div>\n        <div class=\"p-meta\"><span>Ed. of 10</span><span class=\"price\">$550</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"structures\" data-price=\"375\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-57_Small_w2kykn\" alt=\"No. 57\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Archway No. 57</div>\n        <div class=\"p-meta\"><span>Ed. of 25</span><span class=\"price\">$375</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"structures\" data-price=\"400\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-59_Small_tf9deb\" alt=\"No. 59\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Facade No. 59</div>\n        <div class=\"p-meta\"><span>Ed. of 20</span><span class=\"price\">$400</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"350\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-60_Small_pdarj_c\" alt=\"No. 60\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Portrait No. 60</div>\n        <div class=\"p-meta\"><span>Ed. of 25</span><span class=\"price\">$350</span></div>\n      </div>\n    </a>\n\n    <a href=\"#\" class=\"polaroid-card\" data-category=\"figures\" data-price=\"350\">\n      <div class=\"polaroid-frame\">\n        <img src=\"https://res.cloudinary.com/dncbf9zy4/image/upload/f_auto,q_auto,w_800/FilmDoubleExposures-61_Small_5vfqff\" alt=\"No. 61\">\n        <div class=\"cyan-wash\"></div>\n      </div>\n      <div class=\"handwritten-details\">\n        <div class=\"p-title\">Human Form No. 61</div>\n        <div class=\"p-meta\"><span>Ed. of 25</span><span class=\"price\">$350</span></div>\n      </div>\n    </a>\n\n  </section>\n</div>\n\n<style>\n#ada-store-wrapper { background-color: #f2f2f2; color: #002147; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; position: relative; overflow: hidden; padding-bottom: 100px; }\n#ada-store-wrapper::before { content: \"\"; position: absolute; top: 0; left: 0; width: 100%; height: 100%; filter: url(#paperGrain); pointer-events: none; z-index: 10; }\n#ada-store-wrapper .store-header { padding: 100px 40px 60px; text-align: center; border-bottom: 1px solid rgba(0, 33, 71, 0.1); }\n#ada-store-wrapper .store-title { font-size: 3rem; font-weight: 300; letter-spacing: -1px; margin-bottom: 10px; }\n#ada-store-wrapper .store-subtitle { font-size: 0.7rem; letter-spacing: 4px; font-weight: 700; opacity: 0.5; }\n#ada-store-wrapper .store-controls { margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap; }\n#ada-store-wrapper .filter-btn { background: none; border: none; cursor: pointer; color: #8899a6; font-size: 0.8rem; letter-spacing: 1px; padding: 5px 0; border-bottom: 1px solid transparent; transition: all 0.3s ease; }\n#ada-store-wrapper .filter-btn.active, #ada-store-wrapper .filter-btn:hover { color: #002147; border-color: #002147; }\n#ada-store-wrapper .store-sort { font-size: 0.8rem; color: #002147; font-weight: 700; letter-spacing: 1px; }\n#ada-store-wrapper #price-sort { background: none; border: 1px solid rgba(0, 33, 71, 0.2); padding: 5px 10px; color: #002147; font-family: 'Courier New', monospace; cursor: pointer; margin-left: 10px; }\n#ada-store-wrapper .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 60px; padding: 60px 5%; max-width: 1400px; margin: 0 auto; }\n#ada-store-wrapper .polaroid-card { background: #fff; padding: 15px 15px 50px 15px; box-shadow: 0 15px 35px rgba(0, 33, 71, 0.08); text-decoration: none; transition: all 0.5s cubic-bezier(0.2, 1, 0.3, 1); display: block; }\n#ada-store-wrapper .polaroid-frame { width: 100%; aspect-ratio: 4/5; overflow: hidden; position: relative; background: #eee; }\n#ada-store-wrapper .polaroid-frame img { width: 100%; height: 100%; object-fit: cover; transition: transform 4s ease; }\n#ada-store-wrapper .cyan-wash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #002147; mix-blend-mode: color; opacity: 0; transition: opacity 0.5s ease; }\n#ada-store-wrapper .handwritten-details { margin-top: 25px; text-align: center; }\n#ada-store-wrapper .p-title { font-size: 1rem; color: #002147; margin-bottom: 5px; font-family: 'Georgia', serif; font-style: italic; }\n#ada-store-wrapper .p-meta { font-size: 0.75rem; font-family: 'Courier New', monospace; color: #666; display: flex; justify-content: center; gap: 15px; }\n#ada-store-wrapper .price { font-weight: bold; color: #002147; }\n#ada-store-wrapper .polaroid-card:hover { transform: translateY(-12px) rotate(-1.5deg); background-color: #f7f9fb; box-shadow: 0 30px 60px rgba(0, 33, 71, 0.15); }\n#ada-store-wrapper .polaroid-card:hover .cyan-wash { opacity: 0.3; }\n#ada-store-wrapper .polaroid-card:hover img { transform: scale(1.08); }\n#ada-store-wrapper .sold-out { opacity: 0.5; cursor: default; filter: grayscale(100%); }\n@media (max-width: 768px) { #ada-store-wrapper .store-title { font-size: 2.2rem; } #ada-store-wrapper .store-grid { grid-template-columns: 1fr; } }\n<\/style>\n\n<script>\n  (function() {\n    function setupStore() {\n      const wrapper = document.getElementById('ada-store-wrapper');\n      const grid = document.getElementById('main-store-grid');\n      const buttons = wrapper.querySelectorAll('.filter-btn');\n      const sortSelect = document.getElementById('price-sort');\n      let cards = Array.from(wrapper.querySelectorAll('.polaroid-card'));\n\n      buttons.forEach(btn => {\n        btn.onclick = function() {\n          const filter = this.getAttribute('data-filter');\n          buttons.forEach(b => b.classList.remove('active'));\n          this.classList.add('active');\n          cards.forEach(card => {\n            const cat = card.getAttribute('data-category');\n            card.style.display = (filter === 'all' || cat === filter) ? 'block' : 'none';\n          });\n        };\n      });\n\n      sortSelect.onchange = function() {\n        const val = this.value;\n        if (val === 'default') return;\n        const sortedCards = cards.sort((a, b) => {\n          const priceA = parseInt(a.getAttribute('data-price'));\n          const priceB = parseInt(b.getAttribute('data-price'));\n          return val === 'low-high' ? priceA - priceB : priceB - priceA;\n        });\n        grid.innerHTML = \"\";\n        sortedCards.forEach(card => grid.appendChild(card));\n      };\n    }\n    if (document.readyState === 'complete') setupStore();\n    else window.addEventListener('load', setupStore);\n  })();\n<\/script>\n"}/*WFTOOL_E*/;
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let curPage      = null;
+let adminOpen    = false;
+let imgEntries   = [];
+let copyEntries  = [];
+let removedImgEntries = [];
+
+// ── NAV ────────────────────────────────────────────────────────────────────
+function renderNav() {
+  const tree = document.getElementById('nav-tree');
+  tree.innerHTML = '';
+  PAGES.forEach(p => {
+    if (p.children) {
+      const wrap = document.createElement('div');
+      const dot  = PAGE_CODES[p.id] ? '<span class="has-code-dot"></span>' : '';
+      const childHTML = p.children.map(c => {
+        const cdot = PAGE_CODES[c.id] ? '<span class="has-code-dot"></span>' : '';
+        return '<div class="nav-child" id="nch-' + c.id + '" onclick="selectPage(\'' + c.id + '\')">' +
+               '<span class="nav-label">' + c.label + '</span>' + cdot + '</div>';
+      }).join('');
+      wrap.innerHTML =
+        '<div class="nav-parent expanded" id="np-' + p.id + '" onclick="toggleCollapse(\'' + p.id + '\', this)">' +
+          '<span class="nav-label">' + p.label + '</span>' + dot +
+          '<span class="nav-toggle">&#9650;</span>' +
+        '</div>' +
+        '<div class="nav-children open" id="nc-' + p.id + '">' + childHTML + '</div>';
+      tree.appendChild(wrap);
+    } else {
+      const dot = PAGE_CODES[p.id] ? '<span class="has-code-dot"></span>' : '';
+      const el  = document.createElement('div');
+      el.className = 'nav-parent';
+      el.id = 'np-' + p.id;
+      el.setAttribute('onclick', "selectPage('" + p.id + "')");
+      el.innerHTML = '<span class="nav-label">' + p.label + '</span>' + dot;
+      tree.appendChild(el);
+    }
+  });
+}
+
+function toggleCollapse(id, el) {
+  const children = document.getElementById('nc-' + id);
+  if (!children) return;
+  const isOpen = children.classList.contains('open');
+  children.classList.toggle('open', !isOpen);
+  el.classList.toggle('expanded', !isOpen);
+}
+
+function setNavActive(id) {
+  document.querySelectorAll('.nav-parent, .nav-child').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('np-' + id) || document.getElementById('nch-' + id);
+  if (el) el.classList.add('active');
+}
+
+// ── PAGE SELECTION ─────────────────────────────────────────────────────────
+function selectPage(id) {
+  curPage = id;
+  setNavActive(id);
+  closeAdmin();
+  imgEntries = []; copyEntries = [];
+
+  const parent = PARENT_MAP[id];
+  const label  = PAGE_MAP[id] || id;
+  const bc = document.getElementById('page-breadcrumb');
+  bc.innerHTML = parent
+    ? escH(parent) + ' <span style="opacity:.3">·</span> <strong>' + escH(label) + '</strong>'
+    : '<strong>' + escH(label) + '</strong>';
+
+  document.getElementById('edit-btn').style.display = '';
+
+  const code = PAGE_CODES[id];
+  if (!code) { showState('s-empty'); return; }
+  extractAndRender(code, label);
+}
+
+function showState(id) {
+  ['s-welcome','s-empty','s-swap'].forEach(s => {
+    document.getElementById(s).style.display = (s === id) ? '' : 'none';
+  });
+}
+
+// ── EXTRACTION ─────────────────────────────────────────────────────────────
+const IMG_RE = /https?:\/\/[^\s"'`<>()\[\]{}]+/gi;
+const IMG_SRC_RE = /\b(?:src|data-src|poster)\s*=\s*["'](https?:\/\/[^"'`\s]+)["']/gi;
+const CSS_URL_RE = /url\(\s*["']?(https?:\/\/[^"')\s]+)["']?\s*\)/gi;
+
+function getPropJS(str, prop) {
+  const m = str.match(new RegExp(prop + "\\s*:\\s*([\"'`])([^\\n]*?)\\1"));
+  return m ? m[2] : '';
+}
+
+function urlType(url) {
+  if (/res\.cloudinary\.com/i.test(url)) return 'cloudinary';
+  if (/pixieset\.com/i.test(url))        return 'pixieset';
+  return 'other';
+}
+
+function looksLikeImageUrl(url) {
+  return (
+    /\.(?:jpg|jpeg|png|webp|gif|avif|svg)(?:$|\?)/i.test(url) ||
+    /res\.cloudinary\.com\/.+\/image\/upload\//i.test(url)
+  );
+}
+
+function extractAndRender(code, label) {
+  imgEntries = []; copyEntries = []; removedImgEntries = [];
+
+  // 1. JS objects: { url: "...", meta: "...", alt: "..." }
+  const objRe = /\{[^{}]{0,600}url\s*:\s*["'`](https?:\/\/[^"'`\n]+)["'`][^{}]{0,600}\}/gi;
+  const seenObj = new Set();
+  let m;
+  while ((m = objRe.exec(code)) !== null) {
+    const url = m[1];
+    if (!looksLikeImageUrl(url) || seenObj.has(url)) continue;
+    seenObj.add(url);
+    imgEntries.push({
+      url,
+      meta: getPropJS(m[0],'meta') || getPropJS(m[0],'caption') || getPropJS(m[0],'label') || '',
+      alt:  getPropJS(m[0],'alt') || '',
+    });
+  }
+
+  // 2. Standalone image URLs not already captured
+  const seenAll = new Set(seenObj);
+  const candidates = [
+    ...[...code.matchAll(IMG_RE)].map(x => x[0]),
+    ...[...code.matchAll(IMG_SRC_RE)].map(x => x[1]),
+    ...[...code.matchAll(CSS_URL_RE)].map(x => x[1]),
+  ];
+  for (const url of candidates) {
+    if (!looksLikeImageUrl(url)) continue;
+    if (!seenAll.has(url)) { seenAll.add(url); imgEntries.push({ url, meta: '', alt: '' }); }
+  }
+
+  // 3. HTML text nodes (exclude script/style blocks)
+  const stripped = code
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi,  '');
+  const txtRe = />([^<]{3,})</g;
+  const seenTxt = new Set();
+  while ((m = txtRe.exec(stripped)) !== null) {
+    const txt = m[1].trim();
+    if (txt.length < 3 || !/[a-zA-Z]/.test(txt) || /^https?:\/\//.test(txt) || seenTxt.has(txt)) continue;
+    seenTxt.add(txt);
+    const before = stripped.slice(Math.max(0, m.index - 80), m.index + 1);
+    const tagM   = before.match(/<([a-z][a-z0-9]*)(?:\s[^>]*)?>$/i);
+    copyEntries.push({ text: txt, ctx: tagM ? tagM[1].toLowerCase() : 'text' });
+  }
+
+  document.getElementById('tc-img').textContent  = imgEntries.length;
+  document.getElementById('tc-copy').textContent = copyEntries.length;
+  document.getElementById('swap-title').textContent = label;
+  document.getElementById('swap-stats').textContent =
+    imgEntries.length + ' image' + (imgEntries.length !== 1 ? 's' : '') +
+    ' · ' + copyEntries.length + ' text item' + (copyEntries.length !== 1 ? 's' : '');
+
+  renderImgTable();
+  renderCopyTable();
+
+  // Reset to images tab
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-images').classList.add('active');
+  document.querySelector('.tab-btn[data-tab="images"]').classList.add('active');
+
+  document.getElementById('save-status').textContent = '';
+  document.getElementById('save-status').className = '';
+
+  showState('s-swap');
+}
+
+function refreshSwapStats() {
+  document.getElementById('tc-img').textContent  = imgEntries.length;
+  document.getElementById('tc-copy').textContent = copyEntries.length;
+  document.getElementById('swap-stats').textContent =
+    imgEntries.length + ' image' + (imgEntries.length !== 1 ? 's' : '') +
+    ' · ' + copyEntries.length + ' text item' + (copyEntries.length !== 1 ? 's' : '');
+}
+
+// ── RENDER TABLES ──────────────────────────────────────────────────────────
+function renderImgTable() {
+  const tb = document.getElementById('img-tbody');
+  tb.innerHTML = '';
+  if (!imgEntries.length) {
+    tb.innerHTML = '<tr><td colspan="6"><div class="tbl-empty">No image URLs found on this page.</div></td></tr>';
+    return;
+  }
+  imgEntries.forEach((e, i) => {
+    const type  = urlType(e.url);
+    const badge = type === 'cloudinary' ? 'Cloudinary' : type === 'pixieset' ? 'Pixieset' : 'Other';
+    const disp  = e.url.length > 44 ? e.url.slice(0,28) + '…' + e.url.slice(-14) : e.url;
+    const tr    = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="td-num">' + (i+1) + '</td>' +
+      '<td class="td-thumb">' +
+        (e.url
+          ? '<img src="' + ea(e.url) + '" loading="lazy" alt=""' +
+              ' onerror="this.parentNode.innerHTML=\'<div class=&quot;no-img&quot;>?</div>\'"' +
+              ' onclick="window.open(\'' + ej(e.url) + '\',\'_blank\',\'noopener\')" />'
+          : '<div class="no-img">new</div>') +
+      '</td>' +
+      '<td><div class="field-group">' +
+        '<span class="url-badge badge-' + type + '">' + (e.isNew ? 'New' : badge) + '</span>' +
+        (e.url
+          ? '<span class="field-current" title="' + ea(e.url) + '" onclick="clipCopy(\'' + ej(e.url) + '\',this)">' + escH(disp) + '</span>'
+          : '<span class="field-current" style="opacity:.28;font-style:italic">—</span>') +
+        '<input type="text" placeholder="New URL…" data-t="url" data-i="' + i + '" oninput="onInput(this)">' +
+      '</div></td>' +
+      '<td><div class="field-group">' +
+        (e.meta
+          ? '<span class="field-current wrap" onclick="clipCopy(\'' + ej(e.meta) + '\',this)">' + escH(e.meta) + '</span>'
+          : '<span class="field-current" style="opacity:.28;font-style:italic">—</span>') +
+        '<input type="text" placeholder="New caption…" data-t="meta" data-i="' + i + '" oninput="onInput(this)">' +
+      '</div></td>' +
+      '<td><div class="field-group">' +
+        (e.alt
+          ? '<span class="field-current wrap" onclick="clipCopy(\'' + ej(e.alt) + '\',this)">' + escH(e.alt) + '</span>'
+          : '<span class="field-current" style="opacity:.28;font-style:italic">—</span>') +
+        '<input type="text" placeholder="New alt…" data-t="alt" data-i="' + i + '" oninput="onInput(this)">' +
+      '</div></td>' +
+      '<td><button class="btn-sm btn-sm-ghost" onclick="deleteImageRow(' + i + ')">Delete Row</button></td>';
+    tb.appendChild(tr);
+  });
+}
+
+function renderCopyTable() {
+  const tb = document.getElementById('copy-tbody');
+  tb.innerHTML = '';
+  if (!copyEntries.length) {
+    tb.innerHTML = '<tr><td colspan="3"><div class="tbl-empty">No HTML text content found on this page.</div></td></tr>';
+    return;
+  }
+  copyEntries.forEach((e, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="td-num">' + (i+1) + '</td>' +
+      '<td><div class="copy-tag">&lt;' + e.ctx + '&gt;</div>' +
+        '<span class="field-current wrap" onclick="clipCopy(\'' + ej(e.text) + '\',this)">' + escH(e.text) + '</span>' +
+      '</td>' +
+      '<td><input type="text" placeholder="New text…" data-t="copy" data-i="' + i + '" oninput="onInput(this)"></td>';
+    tb.appendChild(tr);
+  });
+}
+
+// ── INTERACTIONS ───────────────────────────────────────────────────────────
+function onInput(inp) {
+  inp.value.trim() ? inp.classList.add('has-value') : inp.classList.remove('has-value');
+  if (inp.dataset.t === 'url') {
+    const thumb = inp.closest('tr').querySelector('.td-thumb img');
+    if (thumb) thumb.src = inp.value.trim() || imgEntries[+inp.dataset.i].url;
+  }
+}
+
+function saveChanges() {
+  if (!curPage) return;
+  let code = PAGE_CODES[curPage] || '';
+  let n = 0;
+  const rep = (orig, val) => {
+    if (val && orig && val !== orig) { code = code.split(orig).join(val); n++; }
+  };
+  document.querySelectorAll('#img-tbody  input[data-t="url"]').forEach(inp  => {
+    const e = imgEntries[+inp.dataset.i]; if (!e) return;
+    const val = inp.value.trim();
+    if (e.isNew) e.url = val || e.url || '';
+    else rep(e.url, val);
+  });
+  document.querySelectorAll('#img-tbody  input[data-t="meta"]').forEach(inp => {
+    const e = imgEntries[+inp.dataset.i]; if (!e) return;
+    const val = inp.value.trim();
+    if (e.isNew) e.meta = val || e.meta || '';
+    else rep(e.meta, val);
+  });
+  document.querySelectorAll('#img-tbody  input[data-t="alt"]').forEach(inp  => {
+    const e = imgEntries[+inp.dataset.i]; if (!e) return;
+    const val = inp.value.trim();
+    if (e.isNew) e.alt = val || e.alt || '';
+    else rep(e.alt, val);
+  });
+  document.querySelectorAll('#copy-tbody input[data-t="copy"]').forEach(inp => rep(copyEntries[+inp.dataset.i]?.text, inp.value.trim()));
+
+  removedImgEntries.forEach(e => {
+    const next = removeImageEntryFromCode(code, e);
+    if (next !== code) { code = next; n++; }
+  });
+  imgEntries.filter(e => e.isNew && e.url).forEach(e => {
+    const next = addImageEntryToCode(code, e);
+    if (next !== code) { code = next; n++; }
+  });
+
+  if (n === 0) { setSS('No changes — fill in at least one field.', 'err'); return; }
+  PAGE_CODES[curPage] = code;
+  removedImgEntries = [];
+  extractAndRender(code, PAGE_MAP[curPage] || curPage);
+  setSS('✓ ' + n + ' change' + (n !== 1 ? 's' : '') + ' saved.', 'ok');
+}
+
+function deleteImageRow(i) {
+  const e = imgEntries[i];
+  if (!e) return;
+  if (!e.isNew) removedImgEntries.push(e);
+  imgEntries.splice(i, 1);
+  renderImgTable();
+  refreshSwapStats();
+  setSS('Row removed. Click Save Changes to apply.', 'ok');
+}
+
+function addImageRow() {
+  imgEntries.push({ url: '', meta: '', alt: '', isNew: true });
+  renderImgTable();
+  refreshSwapStats();
+  setSS('New row added. Enter a URL, then Save Changes.', 'ok');
+}
+
+function removeImageEntryFromCode(code, entry) {
+  if (!entry || !entry.url) return code;
+  const before = code;
+
+  // Remove full print-shop cards first when possible.
+  const cardRe = /<a\b[^>]*class=["'][^"']*polaroid-card[^"']*["'][^>]*>[\s\S]*?<\/a>/gi;
+  let next = code.replace(cardRe, block => block.includes(entry.url) ? '' : block);
+  if (next !== before) return next;
+
+  const esc = escapeRegExp(entry.url);
+  next = code.replace(new RegExp('<img\\b[^>]*\\bsrc\\s*=\\s*["\']' + esc + '["\'][^>]*>\\s*', 'i'), '');
+  if (next !== before) return next;
+
+  // Fallback for object-like definitions containing url.
+  next = code.replace(new RegExp('\\{[^{}]{0,700}url\\s*:\\s*["\'`]' + esc + '["\'`][^{}]{0,700}\\}\\s*,?', 'i'), '');
+  if (next !== before) return next;
+
+  return code;
+}
+
+function addImageEntryToCode(code, entry) {
+  if (!entry || !entry.url) return code;
+  const safeUrl = ea(entry.url);
+  const title = escH((entry.meta || 'New Print').trim() || 'New Print');
+  const safeAlt = ea((entry.alt || title).trim() || 'Print');
+  const card =
+    '\n\n    <a href="#" class="polaroid-card" data-category="figures" data-price="0">' +
+      '\n      <div class="polaroid-frame">' +
+        '\n        <img src="' + safeUrl + '" alt="' + safeAlt + '">' +
+        '\n        <div class="cyan-wash"></div>' +
+      '\n      </div>' +
+      '\n      <div class="handwritten-details">' +
+        '\n        <div class="p-title">' + title + '</div>' +
+        '\n        <div class="p-meta"><span>Ed. of ?</span><span class="price">$0</span></div>' +
+      '\n      </div>' +
+    '\n    </a>';
+
+  const gridStart = code.search(/<section\b[^>]*id=["']main-store-grid["'][^>]*>/i);
+  if (gridStart !== -1) {
+    const close = code.indexOf('</section>', gridStart);
+    if (close !== -1) return code.slice(0, close) + card + code.slice(close);
+  }
+
+  const tbodyClose = code.search(/<\/tbody>/i);
+  if (tbodyClose !== -1) {
+    const row = '\n<tr><td><img src="' + safeUrl + '" alt="' + safeAlt + '"></td><td>' + title + '</td></tr>';
+    return code.slice(0, tbodyClose) + row + code.slice(tbodyClose);
+  }
+
+  return code + '\n<img src="' + safeUrl + '" alt="' + safeAlt + '">';
+}
+
+function clearInputs() {
+  document.querySelectorAll('#img-tbody input, #copy-tbody input').forEach(inp => {
+    inp.value = ''; inp.classList.remove('has-value');
+  });
+  imgEntries.forEach((e,i) => {
+    const thumb = document.querySelector('#img-tbody tr:nth-child(' + (i+1) + ') .td-thumb img');
+    if (thumb) thumb.src = e.url;
+  });
+  setSS('', '');
+}
+
+function setSS(msg, cls) {
+  const el = document.getElementById('save-status');
+  el.textContent = msg; el.className = cls;
+}
+
+function switchTab(btn) {
+  const name = btn.dataset.tab;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── ADMIN ──────────────────────────────────────────────────────────────────
+function toggleAdmin() { adminOpen ? closeAdmin() : openAdmin(); }
+
+function openAdmin() {
+  document.getElementById('source-textarea').value = curPage ? (PAGE_CODES[curPage] || '') : '';
+  document.getElementById('admin-panel').style.display = '';
+  document.getElementById('admin-status').textContent  = '';
+  document.getElementById('edit-btn').classList.add('on');
+  adminOpen = true;
+  document.getElementById('source-textarea').focus();
+}
+
+function closeAdmin() {
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('edit-btn').classList.remove('on');
+  adminOpen = false;
+}
+
+function saveSource() {
+  const code = document.getElementById('source-textarea').value.trim();
+  if (!code) { document.getElementById('admin-status').textContent = 'Paste some code first.'; return; }
+  PAGE_CODES[curPage] = code;
+  renderNav();
+  closeAdmin();
+  extractAndRender(code, PAGE_MAP[curPage] || curPage);
+}
+
+// ── EXPORT ─────────────────────────────────────────────────────────────────
+function exportFile() {
+  const src     = document.documentElement.outerHTML;
+  const newJSON = JSON.stringify(PAGE_CODES).replace(/<\/script>/gi, '<\\/script>').replace(/<\/style>/gi, '<\\/style>');
+  const updated = src.replace(/\/\*WFTOOL_S\*\/[\s\S]*?\/\*WFTOOL_E\*\//, '/*WFTOOL_S*/' + newJSON + '/*WFTOOL_E*/');
+  const blob = new Blob(['<!DOCTYPE html>\n' + updated], { type: 'text/html' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'rutta-studio-tool.html';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function clipCopy(text, el) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = el.textContent; el.textContent = 'Copied!';
+    setTimeout(() => { el.textContent = orig; }, 1000);
+  });
+}
+const ea   = s => s.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const escH = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const ej   = s => s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+const escapeRegExp = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+renderNav();
+</script>
+</body>
+</html>
