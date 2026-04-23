@@ -608,11 +608,30 @@ function urlType(url) {
   return 'other';
 }
 
-function looksLikeImageUrl(url) {
+const IMAGE_HOST_RE = /(?:^|\/\/)(?:lh\d+\.googleusercontent\.com|drive\.google\.com|images\.unsplash\.com|cdn\.pixieset\.com|res\.cloudinary\.com)\//i;
+
+function looksLikeImageUrl(url, fromTag) {
+  if (!url || !/^https?:\/\//i.test(url)) return false;
+  if (/\.(?:mp4|webm|mov|avi|mp3|wav|pdf)(?:$|\?)/i.test(url)) return false;
+
   return (
     /\.(?:jpg|jpeg|png|webp|gif|avif|svg)(?:$|\?)/i.test(url) ||
-    /res\.cloudinary\.com\/.+\/image\/upload\//i.test(url)
+    /res\.cloudinary\.com\/.+\/image\/upload\//i.test(url) ||
+    /[?&](?:format|fm)=(?:jpg|jpeg|png|webp|gif|avif|svg)\b/i.test(url) ||
+    IMAGE_HOST_RE.test(url) ||
+    !!fromTag
   );
+}
+
+function toPreviewUrl(url) {
+  if (!url) return '';
+  const fileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)\//i);
+  if (fileMatch) return 'https://drive.google.com/uc?export=view&id=' + fileMatch[1];
+  const openMatch = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if (/drive\.google\.com\/open/i.test(url) && openMatch) {
+    return 'https://drive.google.com/uc?export=view&id=' + openMatch[1];
+  }
+  return url;
 }
 
 function extractAndRender(code, label) {
@@ -635,13 +654,19 @@ function extractAndRender(code, label) {
 
   // 2. Standalone image URLs not already captured
   const seenAll = new Set(seenObj);
-  const candidates = [
+  const genericCandidates = [
     ...[...code.matchAll(IMG_RE)].map(x => x[0]),
+  ];
+  for (const url of genericCandidates) {
+    if (!looksLikeImageUrl(url)) continue;
+    if (!seenAll.has(url)) { seenAll.add(url); imgEntries.push({ url, meta: '', alt: '' }); }
+  }
+  const tagCandidates = [
     ...[...code.matchAll(IMG_SRC_RE)].map(x => x[1]),
     ...[...code.matchAll(CSS_URL_RE)].map(x => x[1]),
   ];
-  for (const url of candidates) {
-    if (!looksLikeImageUrl(url)) continue;
+  for (const url of tagCandidates) {
+    if (!looksLikeImageUrl(url, true)) continue;
     if (!seenAll.has(url)) { seenAll.add(url); imgEntries.push({ url, meta: '', alt: '' }); }
   }
 
@@ -702,12 +727,13 @@ function renderImgTable() {
     const type  = urlType(e.url);
     const badge = type === 'cloudinary' ? 'Cloudinary' : type === 'pixieset' ? 'Pixieset' : 'Other';
     const disp  = e.url.length > 44 ? e.url.slice(0,28) + '…' + e.url.slice(-14) : e.url;
+    const previewUrl = toPreviewUrl(e.url);
     const tr    = document.createElement('tr');
     tr.innerHTML =
       '<td class="td-num">' + (i+1) + '</td>' +
       '<td class="td-thumb">' +
-        (e.url
-          ? '<img src="' + ea(e.url) + '" loading="lazy" alt=""' +
+        (previewUrl
+          ? '<img src="' + ea(previewUrl) + '" loading="lazy" alt=""' +
               ' onerror="this.parentNode.innerHTML=\'<div class=&quot;no-img&quot;>?</div>\'"' +
               ' onclick="window.open(\'' + ej(e.url) + '\',\'_blank\',\'noopener\')" />'
           : '<div class="no-img">new</div>') +
@@ -731,7 +757,7 @@ function renderImgTable() {
           : '<span class="field-current" style="opacity:.28;font-style:italic">—</span>') +
         '<input type="text" placeholder="New alt…" data-t="alt" data-i="' + i + '" oninput="onInput(this)">' +
       '</div></td>' +
-      '<td><button class="btn-sm btn-sm-ghost" onclick="deleteImageRow(' + i + ')">Delete Row</button></td>';
+      '<td><button class="btn-sm btn-sm-ghost" onclick="deleteImageRow(' + i + ')">Delete This Photo</button></td>';
     tb.appendChild(tr);
   });
 }
@@ -760,7 +786,7 @@ function onInput(inp) {
   inp.value.trim() ? inp.classList.add('has-value') : inp.classList.remove('has-value');
   if (inp.dataset.t === 'url') {
     const thumb = inp.closest('tr').querySelector('.td-thumb img');
-    if (thumb) thumb.src = inp.value.trim() || imgEntries[+inp.dataset.i].url;
+    if (thumb) thumb.src = toPreviewUrl(inp.value.trim() || imgEntries[+inp.dataset.i].url);
   }
 }
 
