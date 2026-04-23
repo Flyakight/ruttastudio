@@ -138,7 +138,57 @@ body {
 }
 .empty-cta:hover { background: #9ad2c9; }
 
+/* TESTIMONIAL BUILDER */
+.builder-card {
+  background: rgba(247,247,247,0.98);
+  border: 1px solid rgba(5,42,97,0.12);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.16);
+  padding: 22px;
+}
+.builder-title { font-family: var(--serif); font-size: 1.7rem; color: var(--forest); margin: 0 0 8px; letter-spacing: 0.03em; }
+.builder-sub { margin: 0 0 16px; font-size: 0.68rem; color: rgba(5,42,97,0.5); line-height: 1.6; }
+.builder-grid { display: grid; gap: 12px; }
+.builder-field label {
+  display: block; margin-bottom: 6px; font-family: var(--mono); font-size: 0.58rem;
+  letter-spacing: 0.12em; text-transform: uppercase; color: rgba(5,42,97,0.6);
+}
+.builder-field input,
+.builder-field textarea {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  border: 1px solid var(--forest-rule);
+  border-radius: 2px;
+  padding: 10px 11px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+}
+.builder-field input:focus,
+.builder-field textarea:focus { border-color: var(--forest-mid); }
+.builder-field textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
+.builder-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.builder-status { min-height: 18px; font-size: 0.62rem; letter-spacing: 0.03em; }
+.builder-status.ok { color: var(--forest-mid); }
+.builder-status.err { color: var(--terracotta); }
+.builder-out { margin-top: 10px; }
+.builder-out textarea {
+  width: 100%;
+  min-height: 220px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  line-height: 1.66;
+  border: 1px solid var(--forest-rule);
+  border-radius: 2px;
+  padding: 11px 12px;
+  background: #fff;
+  color: var(--ink);
+  resize: vertical;
+  outline: none;
+}
+
 /* SWAP AREA */
+
 #s-swap {
   background: rgba(247,247,247,0.98);
   border: 1px solid rgba(5,42,97,0.12);
@@ -322,7 +372,37 @@ input[type="text"].has-value { border-color: var(--mint); background: #F1FBF8; }
       <button class="empty-cta" onclick="openAdmin()">+ Add Source Code</button>
     </div>
 
+    <div id="s-testimonials-builder" style="display:none">
+      <div class="builder-card">
+        <h2 class="builder-title">Testimonials Builder</h2>
+        <p class="builder-sub">Create one new testimonial block that matches your live page style, then copy it into a new Pixieset custom code box.</p>
+        <div class="builder-grid">
+          <div class="builder-field">
+            <label for="tm-photo-url">Photo URL</label>
+            <input id="tm-photo-url" type="text" placeholder="https://..." />
+          </div>
+          <div class="builder-field">
+            <label for="tm-text">Testimonial Text</label>
+            <textarea id="tm-text" placeholder="Write the full testimonial text..."></textarea>
+          </div>
+          <div class="builder-field">
+            <label for="tm-pop-text">Floating Pop-Out Phrase</label>
+            <input id="tm-pop-text" type="text" placeholder="Exact phrase to animate" />
+          </div>
+        </div>
+        <div class="builder-actions">
+          <button class="btn btn-primary" onclick="generateTestimonialCode()">Generate Code</button>
+          <button class="btn btn-ghost" onclick="copyGeneratedTestimonialCode()">Copy Code</button>
+          <span id="tm-builder-status" class="builder-status"></span>
+        </div>
+        <div class="builder-out">
+          <textarea id="tm-code-out" readonly spellcheck="false" placeholder="Generated Pixieset code appears here..."></textarea>
+        </div>
+      </div>
+    </div>
+
     <div id="s-swap" style="display:none">
+
       <div class="page-title-row">
         <div class="page-title" id="swap-title"></div>
         <div class="page-stats" id="swap-stats"></div>
@@ -406,6 +486,9 @@ const PAGES = [
       { id: 'collaborative-portraits', label: 'Collaborative Portraits' },
       { id: 'intimate-weddings',       label: 'Intimate Weddings' },
       { id: 'documentation',           label: 'Documentation' },
+      { id: 'kiddos-and-babies',       label: 'Kiddos and Babies' },
+      { id: 'family-connections',      label: 'Family Connections' },
+      { id: 'film-photography',        label: 'Film Photography' },
       { id: 'storytelling',            label: 'Storytelling' },
   ]},
   { id: 'art-prints',       label: 'Art Prints' },
@@ -498,12 +581,13 @@ function selectPage(id) {
   document.getElementById('edit-btn').style.display = '';
 
   const code = PAGE_CODES[id];
+  if (id === 'testimonials' && !code) { showState('s-testimonials-builder'); return; }
   if (!code) { showState('s-empty'); return; }
   extractAndRender(code, label);
 }
 
 function showState(id) {
-  ['s-welcome','s-empty','s-swap'].forEach(s => {
+  ['s-welcome','s-empty','s-testimonials-builder','s-swap'].forEach(s => {
     document.getElementById(s).style.display = (s === id) ? '' : 'none';
   });
 }
@@ -816,7 +900,189 @@ function switchTab(btn) {
   btn.classList.add('active');
 }
 
+function setTmStatus(msg, cls) {
+  const el = document.getElementById('tm-builder-status');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'builder-status' + (cls ? ' ' + cls : '');
+}
+
+function tmEscapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function applyLiftPhrase(rawText, rawPhrase) {
+  const text = String(rawText || '').trim();
+  const phrase = String(rawPhrase || '').trim();
+  if (!phrase) return { html: tmEscapeHtml(text).replace(/\n/g, '<br>'), matched: true };
+
+  const lowerText = text.toLowerCase();
+  const lowerPhrase = phrase.toLowerCase();
+  const start = lowerText.indexOf(lowerPhrase);
+  if (start === -1) return { html: tmEscapeHtml(text).replace(/\n/g, '<br>'), matched: false };
+
+  const before = tmEscapeHtml(text.slice(0, start));
+  const match = tmEscapeHtml(text.slice(start, start + phrase.length));
+  const after = tmEscapeHtml(text.slice(start + phrase.length));
+  return {
+    html: (before + '<span class="lift-phrase">' + match + '</span>' + after).replace(/\n/g, '<br>'),
+    matched: true
+  };
+}
+
+function generateTestimonialCode() {
+  const photo = (document.getElementById('tm-photo-url')?.value || '').trim();
+  const text = (document.getElementById('tm-text')?.value || '').trim();
+  const popPhrase = (document.getElementById('tm-pop-text')?.value || '').trim();
+
+  if (!photo || !text) {
+    setTmStatus('Photo URL and testimonial text are required.', 'err');
+    return;
+  }
+
+  const quote = applyLiftPhrase(text, popPhrase);
+  const lines = [
+    '<section class="testimonials-page-wrapper">',
+    '  ',
+    '  <div class="testimonials-header">',
+    '    <h1 class="page-title">Kind Words</h1>',
+    '    <p class="page-subtitle">NOTES FROM OUR COLLABORATORS</p>',
+    '  </div>',
+    '',
+    '  <div class="proof-grid">',
+    '    <div class="proof-item">',
+    '      <div class="proof-image">',
+    '        <img src="' + ea(photo) + '" alt="Client Photo">',
+    '      </div>',
+    '      <div class="proof-note">',
+    '        <p class="quote">',
+    '          "' + quote.html + '"',
+    '        </p>',
+    '        <div class="client-info">',
+    '          <p class="client-name">— Client Name</p>',
+    '          <span class="session-type">SESSION TYPE</span>',
+    '        </div>',
+    '      </div>',
+    '    </div>',
+    '  </div>',
+    '</section>',
+    '',
+    '<style>',
+    '  .testimonials-page-wrapper {',
+    '    padding: 100px 40px;',
+    '    min-height: 100vh;',
+    '    font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;',
+    '    color: #1a2b3c;',
+    '    background-color: #F5F7FA;',
+    '  }',
+    '',
+    '  .testimonials-header { text-align: center; margin-bottom: 100px; border-bottom: 1px solid rgba(0, 33, 71, 0.1); padding-bottom: 40px; }',
+    '  .page-title { font-size: 3rem; font-weight: 300; margin: 0 0 15px 0; color: #1a2b3c; }',
+    '  .page-subtitle { font-size: 0.8rem; letter-spacing: 3px; font-weight: 700; color: #5a6b7c; text-transform: uppercase; }',
+    '',
+    '  .proof-grid { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 150px; padding-bottom: 100px; }',
+    '  .proof-item { display: flex; align-items: center; gap: 60px; }',
+    '',
+    '  .proof-image {',
+    '    flex: 0 0 45%; aspect-ratio: 4/5;',
+    '    background: #fff; padding: 10px;',
+    '    box-shadow: 0 15px 40px rgba(0, 33, 71, 0.1);',
+    '    transform: rotate(-1deg);',
+    '    transition: transform 0.5s ease;',
+    '  }',
+    '  .proof-image img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); transition: filter 0.5s ease; }',
+    '  .proof-item:hover .proof-image img { filter: grayscale(0%); }',
+    '',
+    '  .proof-note { flex: 1; }',
+    '  .quote {',
+    '    font-family: \"Georgia\", serif;',
+    '    font-size: 1.3rem;',
+    '    line-height: 2.4;',
+    '    word-spacing: 5px;',
+    '    color: #5a6b7c;',
+    '    margin-bottom: 30px;',
+    '  }',
+    '',
+    '  .lift-phrase {',
+    '    display: inline-block;',
+    '    position: relative;',
+    '    transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);',
+    '    background-color: transparent;',
+    '    padding: 0 2px;',
+    '    border-radius: 4px;',
+    '    z-index: 1;',
+    '  }',
+    '',
+    '  .lift-phrase.active {',
+    '    color: #002147;',
+    '    transform: scale(1.25) rotate(-2deg) translateY(-5px);',
+    '    background-color: #F5F7FA;',
+    '    box-shadow: 0 15px 30px rgba(0, 33, 71, 0.15);',
+    '    z-index: 100;',
+    '    padding: 0 8px;',
+    '    margin: 0 5px;',
+    '  }',
+    '',
+    '  .client-name { font-weight: 700; font-size: 0.9rem; letter-spacing: 1px; margin: 0; color: #1a2b3c; }',
+    '  .session-type { font-size: 0.7rem; letter-spacing: 2px; color: #7CBAB0; text-transform: uppercase; display: block; margin-top: 5px; }',
+    '',
+    '  @media screen and (max-width: 768px) {',
+    '    .proof-item { flex-direction: column; gap: 40px; }',
+    '    .quote { text-align: center; line-height: 2; font-size: 1.1rem; }',
+    '    .lift-phrase.active { transform: scale(1.1) rotate(-1deg); }',
+    '  }',
+    '</style>',
+    '',
+    '<script>',
+    '  document.addEventListener("DOMContentLoaded", function() {',
+    '    const observerOptions = {',
+    '      root: null,',
+    '      rootMargin: "-30% 0px -30% 0px",',
+    '      threshold: 0',
+    '    };',
+    '',
+    '    const observer = new IntersectionObserver((entries) => {',
+    '      entries.forEach(entry => {',
+    '        if (entry.isIntersecting) entry.target.classList.add("active");',
+    '        else entry.target.classList.remove("active");',
+    '      });',
+    '    }, observerOptions);',
+    '',
+    '    const phrases = document.querySelectorAll(".lift-phrase");',
+    '    phrases.forEach(phrase => observer.observe(phrase));',
+    '  });',
+    '<\/script>'
+  ];
+
+  const code = lines.join('\n');
+  document.getElementById('tm-code-out').value = code;
+  PAGE_CODES['testimonials'] = code;
+  renderNav();
+
+  if (popPhrase && !quote.matched) {
+    setTmStatus('Code generated. Pop-out phrase was not found in the testimonial text.', 'err');
+  } else {
+    setTmStatus('Code generated. Copy and paste into a Pixieset custom code box.', 'ok');
+  }
+}
+
+function copyGeneratedTestimonialCode() {
+  const out = document.getElementById('tm-code-out')?.value || '';
+  if (!out.trim()) {
+    setTmStatus('Generate code first.', 'err');
+    return;
+  }
+  navigator.clipboard.writeText(out).then(() => {
+    setTmStatus('Copied to clipboard.', 'ok');
+  });
+}
+
 // ── ADMIN ──────────────────────────────────────────────────────────────────
+
 function toggleAdmin() { adminOpen ? closeAdmin() : openAdmin(); }
 
 function openAdmin() {
