@@ -187,6 +187,48 @@ body {
   outline: none;
 }
 
+/* BULK URL TOOL */
+.bulk-tool {
+  margin-top: 12px;
+  border: 1px solid var(--forest-rule);
+  border-radius: 3px;
+  background: #fff;
+  padding: 12px;
+}
+.bulk-tool-title {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(5,42,97,0.62);
+  margin-bottom: 8px;
+}
+.bulk-tool textarea {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid var(--forest-rule);
+  border-radius: 2px;
+  padding: 10px 11px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+}
+.bulk-tool textarea:focus { border-color: var(--forest-mid); }
+.bulk-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.bulk-hint {
+  font-size: 0.58rem;
+  color: rgba(5,42,97,0.48);
+  letter-spacing: 0.03em;
+}
+
 /* WORKSHOPS BUILDER */
 .ws-grid-two {
   display: grid;
@@ -570,6 +612,15 @@ input[type="text"].has-value { border-color: var(--mint); background: #F1FBF8; }
             </tr></thead>
             <tbody id="img-tbody"></tbody>
           </table>
+        </div>
+        <div class="bulk-tool">
+          <div class="bulk-tool-title">Bulk URL Paste</div>
+          <textarea id="bulk-url-input" placeholder="Paste one URL per line (or any text blob containing URLs)..."></textarea>
+          <div class="bulk-actions">
+            <button class="btn btn-ghost" onclick="applyBulkUrls('append')">Append URLs</button>
+            <button class="btn btn-ghost" onclick="applyBulkUrls('replace')">Replace URL List</button>
+            <span class="bulk-hint">Best for gallery pages that use a JS URL array like <code>const newUrls = [...]</code>.</span>
+          </div>
         </div>
       </div>
       <div id="tab-copy" class="tab-panel">
@@ -1068,6 +1119,86 @@ function switchTab(btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
+}
+
+function parseBulkUrls(raw) {
+  const found = String(raw || '').match(/https?:\/\/[^\s"'`<>()\[\]{}]+/g) || [];
+  const cleaned = found
+    .map(u => u.replace(/[),.;]+$/g, '').trim())
+    .filter(Boolean);
+  return [...new Set(cleaned)];
+}
+
+function extractUrlsFromArrayBody(body) {
+  const urls = [];
+  const re = /["'`](https?:\/\/[^"'`\s]+)["'`/g;
+  let m;
+  while ((m = re.exec(body)) !== null) urls.push(m[1]);
+  return urls;
+}
+
+function buildUrlArrayBody(urls) {
+  return urls.map(u => '    "' + u.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"').join(',\n');
+}
+
+function upsertUrlArrayInCode(code, incoming, mode) {
+  const merge = (existing) => {
+    const uniqIncoming = [...new Set(incoming)];
+    if (mode === 'replace') return uniqIncoming;
+    return [...new Set([...(existing || []), ...uniqIncoming])];
+  };
+
+  const newUrlsRe = /const\s+newUrls\s*=\s*\[([\s\S]*?)\];/;
+  const newUrlsMatch = code.match(newUrlsRe);
+  if (newUrlsMatch) {
+    const existing = extractUrlsFromArrayBody(newUrlsMatch[1]);
+    const merged = merge(existing);
+    const repl = 'const newUrls = [\n' + buildUrlArrayBody(merged) + '\n  ];';
+    return { updated: code.replace(newUrlsRe, repl), changed: true, target: 'newUrls', count: merged.length };
+  }
+
+  const anyArrayRe = /(const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\[([\s\S]*?)\];/g;
+  let m;
+  while ((m = anyArrayRe.exec(code)) !== null) {
+    const kw = m[1];
+    const name = m[2];
+    const body = m[3];
+    const existing = extractUrlsFromArrayBody(body);
+    if (!existing.length) continue;
+    const merged = merge(existing);
+    const full = m[0];
+    const repl = kw + ' ' + name + ' = [\n' + buildUrlArrayBody(merged) + '\n  ];';
+    return { updated: code.replace(full, repl), changed: true, target: name, count: merged.length };
+  }
+
+  return { updated: code, changed: false, target: '', count: 0 };
+}
+
+function applyBulkUrls(mode) {
+  if (!curPage) return;
+  const raw = document.getElementById('bulk-url-input')?.value || '';
+  const urls = parseBulkUrls(raw);
+  if (!urls.length) {
+    setSS('No valid URLs found in bulk input.', 'err');
+    return;
+  }
+
+  const code = PAGE_CODES[curPage] || '';
+  if (!code) {
+    setSS('No source code saved for this page yet.', 'err');
+    return;
+  }
+
+  const result = upsertUrlArrayInCode(code, urls, mode);
+  if (!result.changed) {
+    setSS('Could not find a URL array to update on this page.', 'err');
+    return;
+  }
+
+  PAGE_CODES[curPage] = result.updated;
+  renderNav();
+  extractAndRender(result.updated, PAGE_MAP[curPage] || curPage);
+  setSS('Updated "' + result.target + '" with ' + urls.length + ' URL(s). Total now: ' + result.count + '.', 'ok');
 }
 
 function setTmStatus(msg, cls) {
