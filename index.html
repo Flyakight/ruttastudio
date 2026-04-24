@@ -619,7 +619,7 @@ input[type="text"].has-value { border-color: var(--mint); background: #F1FBF8; }
           <div class="bulk-actions">
             <button class="btn btn-ghost" onclick="applyBulkUrls('append')">Append URLs</button>
             <button class="btn btn-ghost" onclick="applyBulkUrls('replace')">Replace URL List</button>
-            <span class="bulk-hint">Best for gallery pages that use a JS URL array like <code>const newUrls = [...]</code>.</span>
+            <span class="bulk-hint">Accepts plain URLs or raw Cloudinary JSON (with <code>resources[].public_id</code>). Best for pages using arrays like <code>const newUrls = [...]</code>.</span>
           </div>
         </div>
       </div>
@@ -1121,12 +1121,48 @@ function switchTab(btn) {
   btn.classList.add('active');
 }
 
-function parseBulkUrls(raw) {
-  const found = String(raw || '').match(/https?:\/\/[^\s"'`<>()\[\]{}]+/g) || [];
-  const cleaned = found
-    .map(u => u.replace(/[),.;]+$/g, '').trim())
-    .filter(Boolean);
-  return [...new Set(cleaned)];
+const DEFAULT_CLOUDINARY_CLOUD = 'dncbf9zy4';
+
+function detectCloudinaryCloud(code) {
+  const m = String(code || '').match(/res\.cloudinary\.com\/([^/\s]+)\//i);
+  if (m && m[1]) return m[1];
+  for (const k of Object.keys(PAGE_CODES || {})) {
+    const v = PAGE_CODES[k];
+    const n = String(v || '').match(/res\.cloudinary\.com\/([^/\s]+)\//i);
+    if (n && n[1]) return n[1];
+  }
+  return DEFAULT_CLOUDINARY_CLOUD;
+}
+
+function parseBulkUrls(raw, codeForCloudGuess) {
+  const input = String(raw || '').trim();
+  const cloud = detectCloudinaryCloud(codeForCloudGuess);
+  const out = [];
+
+  // 1) Try parsing raw JSON from Cloudinary API/list output
+  try {
+    const parsed = JSON.parse(input);
+    const resources = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.resources) ? parsed.resources : null);
+    if (resources && resources.length) {
+      resources.forEach(r => {
+        const secure = r?.secure_url || r?.url;
+        if (typeof secure === 'string' && secure.startsWith('http')) {
+          out.push(secure.trim());
+          return;
+        }
+        const publicId = r?.public_id;
+        if (typeof publicId === 'string' && publicId.trim()) {
+          out.push('https://res.cloudinary.com/' + cloud + '/image/upload/' + publicId.trim());
+        }
+      });
+    }
+  } catch (_) {}
+
+  // 2) Also parse any direct URLs from pasted text blobs
+  const found = input.match(/https?:\/\/[^\s"'`<>()\[\]{}]+/g) || [];
+  found.forEach(u => out.push(u.replace(/[),.;]+$/g, '').trim()));
+
+  return [...new Set(out.filter(Boolean))];
 }
 
 function extractUrlsFromArrayBody(body) {
@@ -1177,13 +1213,13 @@ function upsertUrlArrayInCode(code, incoming, mode) {
 function applyBulkUrls(mode) {
   if (!curPage) return;
   const raw = document.getElementById('bulk-url-input')?.value || '';
-  const urls = parseBulkUrls(raw);
+  const code = PAGE_CODES[curPage] || '';
+  const urls = parseBulkUrls(raw, code);
   if (!urls.length) {
-    setSS('No valid URLs found in bulk input.', 'err');
+    setSS('No valid image URLs (or Cloudinary public_id entries) found in bulk input.', 'err');
     return;
   }
 
-  const code = PAGE_CODES[curPage] || '';
   if (!code) {
     setSS('No source code saved for this page yet.', 'err');
     return;
