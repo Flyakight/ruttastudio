@@ -1167,7 +1167,7 @@ function parseBulkUrls(raw, codeForCloudGuess) {
 
 function extractUrlsFromArrayBody(body) {
   const urls = [];
-  const re = /["'`](https?:\/\/[^"'`\s]+)["'`/g;
+  const re = /["'`](https?:\/\/[^"'`\s]+)["'`]/g;
   let m;
   while ((m = re.exec(body)) !== null) urls.push(m[1]);
   return urls;
@@ -1455,14 +1455,14 @@ function wsRenderRows() {
   wsRows.forEach((row, i) => {
     const tr = document.createElement('tr');
     tr.innerHTML =
-      '<td><input type="text" value="' + ea(row.month || '') + '" oninput="wsSet(' + i + ',\\'month\\', this.value)"></td>' +
-      '<td><input type="text" value="' + ea(row.day || '') + '" oninput="wsSet(' + i + ',\\'day\\', this.value)"></td>' +
-      '<td><input type="text" value="' + ea(row.title || '') + '" oninput="wsSet(' + i + ',\\'title\\', this.value)"></td>' +
-      '<td><input type="text" value="' + ea(row.details || '') + '" oninput="wsSet(' + i + ',\\'details\\', this.value)"></td>' +
-      '<td><input type="text" value="' + ea(row.statusText || '') + '" oninput="wsSet(' + i + ',\\'statusText\\', this.value)"></td>' +
-      '<td><input type="text" value="' + ea(row.buttonLabel || '') + '" oninput="wsSet(' + i + ',\\'buttonLabel\\', this.value)"></td>' +
-      '<td><input type="text" value="' + ea(row.buttonUrl || '') + '" oninput="wsSet(' + i + ',\\'buttonUrl\\', this.value)"></td>' +
-      '<td><select onchange="wsSet(' + i + ',\\'state\\', this.value)">' + wsStateOptions(row.state || 'open') + '</select></td>' +
+      '<td><input type="text" value="' + ea(row.month || '') + '" oninput="wsSet(' + i + ',\'month\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.day || '') + '" oninput="wsSet(' + i + ',\'day\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.title || '') + '" oninput="wsSet(' + i + ',\'title\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.details || '') + '" oninput="wsSet(' + i + ',\'details\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.statusText || '') + '" oninput="wsSet(' + i + ',\'statusText\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.buttonLabel || '') + '" oninput="wsSet(' + i + ',\'buttonLabel\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.buttonUrl || '') + '" oninput="wsSet(' + i + ',\'buttonUrl\', this.value)"></td>' +
+      '<td><select onchange="wsSet(' + i + ',\'state\', this.value)">' + wsStateOptions(row.state || 'open') + '</select></td>' +
       '<td><div class="ws-row-actions">' +
         '<button class="ws-btn-mini" onclick="wsMove(' + i + ', -1)">Up</button>' +
         '<button class="ws-btn-mini" onclick="wsMove(' + i + ', 1)">Down</button>' +
