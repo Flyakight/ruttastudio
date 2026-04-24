@@ -187,6 +187,72 @@ body {
   outline: none;
 }
 
+/* WORKSHOPS BUILDER */
+.ws-grid-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.ws-table-wrap {
+  border: 1px solid var(--forest-rule);
+  border-radius: 3px;
+  overflow-x: auto;
+  background: #fff;
+}
+.ws-table-wrap table { width: 100%; border-collapse: collapse; font-size: 0.66rem; }
+.ws-table-wrap th {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 10px;
+  background: #eef2f6;
+  color: var(--forest);
+  text-align: left;
+  white-space: nowrap;
+}
+.ws-table-wrap td {
+  border-top: 1px solid var(--forest-rule);
+  padding: 8px 9px;
+  vertical-align: top;
+}
+.ws-table-wrap input,
+.ws-table-wrap select {
+  width: 100%;
+  border: 1px solid var(--forest-rule);
+  border-radius: 2px;
+  padding: 6px 8px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+}
+.ws-table-wrap input:focus,
+.ws-table-wrap select:focus { border-color: var(--forest-mid); }
+.ws-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.ws-btn-mini {
+  font-family: var(--mono);
+  font-size: 0.53rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--forest-rule);
+  background: #f6f7f8;
+  color: var(--forest);
+  border-radius: 2px;
+  padding: 4px 7px;
+  cursor: pointer;
+}
+.ws-btn-mini:hover { background: #eef2f6; }
+.ws-subhead {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(5,42,97,0.56);
+  margin: 12px 0 8px;
+}
+
 /* SWAP AREA */
 
 #s-swap {
@@ -401,6 +467,82 @@ input[type="text"].has-value { border-color: var(--mint); background: #F1FBF8; }
       </div>
     </div>
 
+    <div id="s-workshops-builder" style="display:none">
+      <div class="builder-card">
+        <h2 class="builder-title">Workshops Builder</h2>
+        <p class="builder-sub">Update workshop hero content, dates, event info, and images. Then generate a ready-to-paste Pixieset code block.</p>
+
+        <div class="ws-subhead">Hero Content</div>
+        <div class="builder-grid">
+          <div class="builder-field">
+            <label for="ws-meta-tag">Meta Tag</label>
+            <input id="ws-meta-tag" type="text" value="// EDUCATION & COMMUNITY" />
+          </div>
+          <div class="builder-field">
+            <label for="ws-hero-title">Hero Title</label>
+            <input id="ws-hero-title" type="text" value="The Living Studio" />
+          </div>
+          <div class="builder-field">
+            <label for="ws-hero-intro">Hero Intro Text</label>
+            <textarea id="ws-hero-intro">A space for photographers to slow down, study light, and reconnect with the tangible art of image-making.</textarea>
+          </div>
+          <div class="ws-grid-two">
+            <div class="builder-field">
+              <label for="ws-hero-img-back">Hero Back Photo URL</label>
+              <input id="ws-hero-img-back" type="text" value="https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538734/_DSC6556_pd2awd.jpg" />
+            </div>
+            <div class="builder-field">
+              <label for="ws-hero-img-front">Hero Front Photo URL</label>
+              <input id="ws-hero-img-front" type="text" value="https://res.cloudinary.com/dncbf9zy4/image/upload/v1769538730/_DSC6550_twghcd.jpg" />
+            </div>
+          </div>
+        </div>
+
+        <div class="ws-subhead">Ledger Header</div>
+        <div class="ws-grid-two">
+          <div class="builder-field">
+            <label for="ws-ledger-title">Ledger Title</label>
+            <input id="ws-ledger-title" type="text" value="Upcoming Sessions" />
+          </div>
+          <div class="builder-field">
+            <label for="ws-season-tag">Season Tag</label>
+            <input id="ws-season-tag" type="text" value="SEASON 2026" />
+          </div>
+        </div>
+
+        <div class="ws-subhead">Event Rows</div>
+        <div class="ws-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Day</th>
+                <th>Title</th>
+                <th>Details</th>
+                <th>Status</th>
+                <th>Button</th>
+                <th>Link</th>
+                <th>State</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ws-rows-body"></tbody>
+          </table>
+        </div>
+
+        <div class="builder-actions">
+          <button class="btn btn-ghost" onclick="wsAddRow()">+ Add Event Row</button>
+          <button class="btn btn-primary" onclick="generateWorkshopsCode()">Generate Code</button>
+          <button class="btn btn-ghost" onclick="copyGeneratedWorkshopsCode()">Copy Code</button>
+          <span id="ws-builder-status" class="builder-status"></span>
+        </div>
+
+        <div class="builder-out">
+          <textarea id="ws-code-out" readonly spellcheck="false" placeholder="Generated workshops/events Pixieset code appears here..."></textarea>
+        </div>
+      </div>
+    </div>
+
     <div id="s-swap" style="display:none">
 
       <div class="page-title-row">
@@ -517,6 +659,7 @@ let adminOpen    = false;
 let imgEntries   = [];
 let copyEntries  = [];
 let removedImgEntries = [];
+let wsRows = [];
 
 // ── NAV ────────────────────────────────────────────────────────────────────
 function renderNav() {
@@ -582,12 +725,13 @@ function selectPage(id) {
 
   const code = PAGE_CODES[id];
   if (id === 'testimonials' && !code) { showState('s-testimonials-builder'); return; }
+  if (id === 'events-workshops') { initWorkshopsBuilder(); showState('s-workshops-builder'); return; }
   if (!code) { showState('s-empty'); return; }
   extractAndRender(code, label);
 }
 
 function showState(id) {
-  ['s-welcome','s-empty','s-testimonials-builder','s-swap'].forEach(s => {
+  ['s-welcome','s-empty','s-testimonials-builder','s-workshops-builder','s-swap'].forEach(s => {
     document.getElementById(s).style.display = (s === id) ? '' : 'none';
   });
 }
@@ -1104,6 +1248,249 @@ function copyGeneratedTestimonialCode() {
   }
   navigator.clipboard.writeText(out).then(() => {
     setTmStatus('Copied to clipboard.', 'ok');
+  });
+}
+
+const WS_DEFAULT_ROWS = [
+  { month: 'MAR', day: '12', title: 'The Art of the Portrait', details: 'Baltimore, MD / 2 Days', statusText: '3 SPOTS LEFT', buttonLabel: 'Reserve', buttonUrl: '/contact', state: 'low' },
+  { month: 'APR', day: '08', title: 'Film & Darkroom Basics', details: 'Online / 4 Weeks', statusText: 'OPEN ENROLLMENT', buttonLabel: 'Reserve', buttonUrl: '/contact', state: 'open' },
+  { month: 'MAY', day: '20', title: 'Wedding Narrative Workshop', details: 'New York, NY / 3 Days', statusText: 'WAITLIST ONLY', buttonLabel: 'Join List', buttonUrl: '/contact', state: 'waitlist' }
+];
+
+function setWsStatus(msg, cls) {
+  const el = document.getElementById('ws-builder-status');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'builder-status' + (cls ? ' ' + cls : '');
+}
+
+function initWorkshopsBuilder() {
+  if (!wsRows.length) wsRows = WS_DEFAULT_ROWS.map(r => ({ ...r }));
+  wsRenderRows();
+  setWsStatus('', '');
+}
+
+function wsStateOptions(cur) {
+  const opts = [
+    { value: 'open', label: 'Open' },
+    { value: 'low', label: 'Low Spots' },
+    { value: 'waitlist', label: 'Waitlist' },
+    { value: 'soldout', label: 'Sold Out' }
+  ];
+  return opts.map(o => '<option value="' + o.value + '"' + (cur === o.value ? ' selected' : '') + '>' + o.label + '</option>').join('');
+}
+
+function wsRenderRows() {
+  const tbody = document.getElementById('ws-rows-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  wsRows.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><input type="text" value="' + ea(row.month || '') + '" oninput="wsSet(' + i + ',\\'month\\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.day || '') + '" oninput="wsSet(' + i + ',\\'day\\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.title || '') + '" oninput="wsSet(' + i + ',\\'title\\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.details || '') + '" oninput="wsSet(' + i + ',\\'details\\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.statusText || '') + '" oninput="wsSet(' + i + ',\\'statusText\\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.buttonLabel || '') + '" oninput="wsSet(' + i + ',\\'buttonLabel\\', this.value)"></td>' +
+      '<td><input type="text" value="' + ea(row.buttonUrl || '') + '" oninput="wsSet(' + i + ',\\'buttonUrl\\', this.value)"></td>' +
+      '<td><select onchange="wsSet(' + i + ',\\'state\\', this.value)">' + wsStateOptions(row.state || 'open') + '</select></td>' +
+      '<td><div class="ws-row-actions">' +
+        '<button class="ws-btn-mini" onclick="wsMove(' + i + ', -1)">Up</button>' +
+        '<button class="ws-btn-mini" onclick="wsMove(' + i + ', 1)">Down</button>' +
+        '<button class="ws-btn-mini" onclick="wsDelete(' + i + ')">Delete</button>' +
+      '</div></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function wsSet(i, key, value) {
+  if (!wsRows[i]) return;
+  wsRows[i][key] = value;
+}
+
+function wsAddRow() {
+  wsRows.push({
+    month: 'JUN',
+    day: '01',
+    title: 'New Workshop',
+    details: 'City, ST / 1 Day',
+    statusText: 'OPEN ENROLLMENT',
+    buttonLabel: 'Reserve',
+    buttonUrl: '/contact',
+    state: 'open'
+  });
+  wsRenderRows();
+  setWsStatus('New event row added.', 'ok');
+}
+
+function wsDelete(i) {
+  if (!wsRows[i]) return;
+  wsRows.splice(i, 1);
+  wsRenderRows();
+  setWsStatus('Event row deleted.', 'ok');
+}
+
+function wsMove(i, delta) {
+  const j = i + delta;
+  if (j < 0 || j >= wsRows.length) return;
+  const t = wsRows[i];
+  wsRows[i] = wsRows[j];
+  wsRows[j] = t;
+  wsRenderRows();
+}
+
+function generateWorkshopsCode() {
+  const metaTag = (document.getElementById('ws-meta-tag')?.value || '').trim();
+  const heroTitle = (document.getElementById('ws-hero-title')?.value || '').trim();
+  const heroIntro = (document.getElementById('ws-hero-intro')?.value || '').trim();
+  const heroBack = (document.getElementById('ws-hero-img-back')?.value || '').trim();
+  const heroFront = (document.getElementById('ws-hero-img-front')?.value || '').trim();
+  const ledgerTitle = (document.getElementById('ws-ledger-title')?.value || '').trim();
+  const seasonTag = (document.getElementById('ws-season-tag')?.value || '').trim();
+
+  if (!heroTitle || !heroIntro || !heroBack || !heroFront) {
+    setWsStatus('Hero title, intro, and both hero image URLs are required.', 'err');
+    return;
+  }
+  if (!wsRows.length) {
+    setWsStatus('Add at least one event row.', 'err');
+    return;
+  }
+
+  const rowsHtml = wsRows.map((r) => {
+    const state = (r.state || 'open').toLowerCase();
+    const isSold = state === 'soldout' || state === 'waitlist';
+    const rowClass = 'event-row' + (isSold ? ' sold-out' : '');
+    const btnClass = 'ledger-btn' + (isSold ? ' disabled' : '');
+    return [
+      '    <div class="' + rowClass + '">',
+      '      <div class="date-col">',
+      '        <span class="month">' + tmEscapeHtml((r.month || '').toUpperCase()) + '</span>',
+      '        <span class="day">' + tmEscapeHtml(r.day || '') + '</span>',
+      '      </div>',
+      '      <div class="info-col">',
+      '        <h4>' + tmEscapeHtml(r.title || '') + '</h4>',
+      '        <span class="details">' + tmEscapeHtml(r.details || '') + '</span>',
+      '      </div>',
+      '      <div class="status-col">',
+      '        <span class="spots-left">' + tmEscapeHtml(r.statusText || '') + '</span>',
+      '        <a href="' + ea(r.buttonUrl || '/contact') + '" class="' + btnClass + '">' + tmEscapeHtml(r.buttonLabel || 'Reserve') + '</a>',
+      '      </div>',
+      '    </div>'
+    ].join('\n');
+  }).join('\n\n');
+
+  const lines = [
+    '<link rel="stylesheet" href="https://use.typekit.net/ufa5wuy.css">',
+    '',
+    '<div id="ada-wrapper" class="workshop-wrapper">',
+    '',
+    '  <section class="workshop-hero">',
+    '    <div class="hero-split">',
+    '      <div class="hero-text">',
+    '        <span class="meta-tag">' + tmEscapeHtml(metaTag || '// EDUCATION & COMMUNITY') + '</span>',
+    '        <h1 class="mendl-font">' + tmEscapeHtml(heroTitle) + '</h1>',
+    '        <p class="intro-text">',
+    '          ' + tmEscapeHtml(heroIntro),
+    '        </p>',
+    '      </div>',
+    '',
+    '      <div class="hero-visuals">',
+    '        <div class="polaroid-stack p-back">',
+    '          <img src="' + ea(heroBack) + '" alt="Workshop 1">',
+    '        </div>',
+    '        <div class="polaroid-stack p-front">',
+    '          <img src="' + ea(heroFront) + '" alt="Workshop 2">',
+    '          <div class="tape-strip"></div>',
+    '        </div>',
+    '      </div>',
+    '    </div>',
+    '  </section>',
+    '',
+    '  <section class="events-ledger">',
+    '    <div class="ledger-header">',
+    '      <h3 class="ledger-title">' + tmEscapeHtml(ledgerTitle || 'Upcoming Sessions') + '</h3>',
+    '      <span class="season-tag">' + tmEscapeHtml(seasonTag || 'SEASON 2026') + '</span>',
+    '    </div>',
+    '',
+         rowsHtml,
+    '',
+    '  </section>',
+    '</div>',
+    '',
+    '<style>',
+    '/* --- VARIABLES --- */',
+    ':root {',
+    '  --rs-white: #F7F7F7;',
+    '  --rs-dusk: #052A61;',
+    '  --rs-teal: #7CBAB0;',
+    '  --rs-blue-mid: #3A91B5;',
+    '  --rs-font: "mendl-sans-variable", sans-serif;',
+    '  --ease-silk: cubic-bezier(0.2, 0.8, 0.2, 1);',
+    '  --ease-molasses: cubic-bezier(0.19, 1, 0.22, 1);',
+    '}',
+    '',
+    '#ada-wrapper.workshop-wrapper { background-color: var(--rs-white); color: var(--rs-dusk); font-family: var(--rs-font); padding: 100px 5%; }',
+    '.workshop-hero { margin-bottom: 120px; }',
+    '.hero-split { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 60px; max-width: 1200px; margin: 0 auto; }',
+    '.mendl-font { font-size: 3.5rem; line-height: 1.1; margin: 15px 0 25px; font-variation-settings: "wght" 300; letter-spacing: -1px; }',
+    '.meta-tag { font-family: "Courier New", monospace; font-size: 0.75rem; letter-spacing: 2px; color: var(--rs-teal); }',
+    '.intro-text { font-size: 1.1rem; line-height: 1.6; color: #666; max-width: 450px; }',
+    '.hero-visuals { position: relative; height: 400px; display: flex; justify-content: center; align-items: center; }',
+    '.polaroid-stack { position: absolute; width: 280px; background: #fff; padding: 12px 12px 50px 12px; box-shadow: 0 10px 40px rgba(5, 42, 97, 0.1); border: 1px solid #e0e0e0; transition: transform 0.8s var(--ease-molasses); }',
+    '.polaroid-stack img { width: 100%; display: block; filter: grayscale(100%); transition: filter 0.6s ease; }',
+    '.p-back { transform: rotate(-5deg) translate(-20px, -10px); z-index: 1; }',
+    '.p-front { transform: rotate(3deg) translate(10px, 10px); z-index: 2; }',
+    '.tape-strip { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 80px; height: 25px; background: rgba(124, 186, 176, 0.4); backdrop-filter: blur(2px); }',
+    '.hero-visuals:hover .p-back { transform: rotate(-12deg) translate(-40px, -10px); }',
+    '.hero-visuals:hover .p-front { transform: rotate(8deg) translate(30px, 10px) scale(1.02); }',
+    '.hero-visuals:hover img { filter: grayscale(0%); }',
+    '.events-ledger { max-width: 900px; margin: 0 auto; }',
+    '.ledger-header { border-bottom: 2px solid var(--rs-dusk); display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 15px; margin-bottom: 40px; }',
+    '.ledger-title { font-size: 2rem; margin: 0; font-weight: 400; }',
+    '.season-tag { font-family: "Courier New", monospace; font-size: 0.8rem; letter-spacing: 2px; color: var(--rs-teal); }',
+    '.event-row { display: grid; grid-template-columns: 80px 1fr 180px; align-items: center; gap: 30px; padding: 30px 0; border-bottom: 1px solid rgba(5, 42, 97, 0.1); transition: all 0.4s ease; }',
+    '.event-row:hover { background: #fff; padding-left: 20px; padding-right: 20px; border-bottom: 1px solid transparent; box-shadow: 0 5px 20px rgba(0,0,0,0.05); transform: scale(1.02); }',
+    '.date-col { text-align: center; border-right: 1px solid #ddd; padding-right: 20px; }',
+    '.month { display: block; font-family: "Courier New", monospace; font-size: 0.75rem; color: var(--rs-teal); letter-spacing: 1px; }',
+    '.day { display: block; font-size: 1.8rem; font-weight: 700; line-height: 1; margin-top: 5px; }',
+    '.info-col h4 { margin: 0 0 5px 0; font-size: 1.4rem; font-weight: 400; }',
+    '.details { font-family: "Courier New", monospace; font-size: 0.8rem; color: #666; }',
+    '.status-col { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }',
+    '.spots-left { font-family: "Courier New", monospace; font-size: 0.65rem; color: var(--rs-blue-mid); letter-spacing: 1px; }',
+    '.ledger-btn { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--rs-dusk); border: 1px solid var(--rs-dusk); padding: 8px 20px; border-radius: 50px; transition: all 0.3s ease; }',
+    '.event-row:hover .ledger-btn { background: var(--rs-dusk); color: #fff; }',
+    '.event-row.sold-out .ledger-btn.disabled { border-color: #ddd; color: #999; cursor: default; }',
+    '.event-row.sold-out:hover .ledger-btn.disabled { background: transparent; color: #999; }',
+    '.event-row.sold-out { opacity: 0.6; }',
+    '@media screen and (max-width: 768px) {',
+    '  .hero-split { grid-template-columns: 1fr; text-align: center; }',
+    '  .hero-visuals { height: 300px; margin-bottom: 40px; }',
+    '  .intro-text { margin: 0 auto; }',
+    '  .event-row { grid-template-columns: 1fr; text-align: center; gap: 15px; }',
+    '  .date-col { border-right: none; border-bottom: 1px solid #eee; padding-bottom: 10px; padding-right: 0; display: flex; justify-content: center; gap: 10px; align-items: baseline; }',
+    '  .status-col { align-items: center; }',
+    '}',
+    '</style>'
+  ];
+
+  const code = lines.join('\n');
+  document.getElementById('ws-code-out').value = code;
+  PAGE_CODES['events-workshops'] = code;
+  renderNav();
+  setWsStatus('Code generated. Copy and paste into a Pixieset custom code box.', 'ok');
+}
+
+function copyGeneratedWorkshopsCode() {
+  const out = document.getElementById('ws-code-out')?.value || '';
+  if (!out.trim()) {
+    setWsStatus('Generate code first.', 'err');
+    return;
+  }
+  navigator.clipboard.writeText(out).then(() => {
+    setWsStatus('Copied to clipboard.', 'ok');
   });
 }
 
