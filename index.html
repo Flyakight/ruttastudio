@@ -618,6 +618,7 @@ input[type="text"].has-value { border-color: var(--mint); background: #F1FBF8; }
           <textarea id="bulk-url-input" placeholder="Paste one URL per line (or any text blob containing URLs)..."></textarea>
           <div class="bulk-actions">
             <button class="btn btn-ghost" onclick="applyBulkUrls('append')">Append URLs</button>
+            <button class="btn btn-ghost" onclick="applyBulkUrls('append_scramble')">Append + Scramble</button>
             <button class="btn btn-ghost" onclick="applyBulkUrls('replace')">Replace URL List</button>
             <span class="bulk-hint">Accepts plain URLs or raw Cloudinary JSON (with <code>resources[].public_id</code>). Best for pages using arrays like <code>const newUrls = [...]</code>.</span>
           </div>
@@ -1177,11 +1178,24 @@ function buildUrlArrayBody(urls) {
   return urls.map(u => '    "' + u.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"').join(',\n');
 }
 
+function shuffleUrls(items) {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = arr[i];
+    arr[i] = arr[j];
+    arr[j] = t;
+  }
+  return arr;
+}
+
 function upsertUrlArrayInCode(code, incoming, mode) {
   const merge = (existing) => {
     const uniqIncoming = [...new Set(incoming)];
     if (mode === 'replace') return uniqIncoming;
-    return [...new Set([...(existing || []), ...uniqIncoming])];
+    const combined = [...new Set([...(existing || []), ...uniqIncoming])];
+    if (mode === 'append_scramble') return shuffleUrls(combined);
+    return combined;
   };
 
   const newUrlsRe = /const\s+newUrls\s*=\s*\[([\s\S]*?)\];/;
@@ -1234,7 +1248,8 @@ function applyBulkUrls(mode) {
   PAGE_CODES[curPage] = result.updated;
   renderNav();
   extractAndRender(result.updated, PAGE_MAP[curPage] || curPage);
-  setSS('Updated "' + result.target + '" with ' + urls.length + ' URL(s). Total now: ' + result.count + '.', 'ok');
+  const modeLabel = mode === 'append_scramble' ? ' (scrambled)' : '';
+  setSS('Updated "' + result.target + '" with ' + urls.length + ' URL(s). Total now: ' + result.count + modeLabel + '.', 'ok');
 }
 
 function setTmStatus(msg, cls) {
