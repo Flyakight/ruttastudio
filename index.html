@@ -620,6 +620,7 @@ input[type="text"].has-value { border-color: var(--mint); background: #F1FBF8; }
             <button class="btn btn-ghost" onclick="applyBulkUrls('append')">Append URLs</button>
             <button class="btn btn-ghost" onclick="applyBulkUrls('append_scramble')">Append + Scramble</button>
             <button class="btn btn-ghost" onclick="applyBulkUrls('replace')">Replace URL List</button>
+            <button class="btn btn-ghost" onclick="scrambleExisting()">&#x21C4;&nbsp; Scramble</button>
             <span class="bulk-hint">Accepts plain URLs or raw Cloudinary JSON (with <code>resources[].public_id</code>). Best for pages using arrays like <code>const newUrls = [...]</code>.</span>
           </div>
         </div>
@@ -1191,6 +1192,7 @@ function shuffleUrls(items) {
 
 function upsertUrlArrayInCode(code, incoming, mode) {
   const merge = (existing) => {
+    if (mode === 'scramble_existing') return shuffleUrls(existing || []);
     const uniqIncoming = [...new Set(incoming)];
     if (mode === 'replace') return uniqIncoming;
     const combined = [...new Set([...(existing || []), ...uniqIncoming])];
@@ -1250,6 +1252,18 @@ function applyBulkUrls(mode) {
   extractAndRender(result.updated, PAGE_MAP[curPage] || curPage);
   const modeLabel = mode === 'append_scramble' ? ' (scrambled)' : '';
   setSS('Updated "' + result.target + '" with ' + urls.length + ' URL(s). Total now: ' + result.count + modeLabel + '.', 'ok');
+}
+
+function scrambleExisting() {
+  if (!curPage) return;
+  const code = PAGE_CODES[curPage] || '';
+  if (!code) { setSS('No source code saved for this page yet.', 'err'); return; }
+  const result = upsertUrlArrayInCode(code, [], 'scramble_existing');
+  if (!result.changed) { setSS('Could not find a URL array to scramble on this page.', 'err'); return; }
+  PAGE_CODES[curPage] = result.updated;
+  renderNav();
+  extractAndRender(result.updated, PAGE_MAP[curPage] || curPage);
+  setSS('Scrambled ' + result.count + ' existing URL(s).', 'ok');
 }
 
 function setTmStatus(msg, cls) {
