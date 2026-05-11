@@ -1192,8 +1192,7 @@ function shuffleUrls(items) {
 
 function upsertUrlArrayInCode(code, incoming, mode) {
   const merge = (existing) => {
-    if (mode === 'scramble_existing') return shuffleUrls(existing || []);
-    const uniqIncoming = [...new Set(incoming)];
+const uniqIncoming = [...new Set(incoming)];
     if (mode === 'replace') return uniqIncoming;
     const combined = [...new Set([...(existing || []), ...uniqIncoming])];
     if (mode === 'append_scramble') return shuffleUrls(combined);
@@ -1254,16 +1253,60 @@ function applyBulkUrls(mode) {
   setSS('Updated "' + result.target + '" with ' + urls.length + ' URL(s). Total now: ' + result.count + modeLabel + '.', 'ok');
 }
 
+function splitArrayElements(body) {
+  const elements = [];
+  let depth = 0, current = '', inString = false, stringChar = '';
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (inString) {
+      current += ch;
+      if (ch === '\\') { current += body[++i]; continue; }
+      if (ch === stringChar) inString = false;
+    } else if (ch === '"' || ch === "'" || ch === '`') {
+      inString = true; stringChar = ch; current += ch;
+    } else if (ch === '{' || ch === '[') {
+      depth++; current += ch;
+    } else if (ch === '}' || ch === ']') {
+      depth--; current += ch;
+    } else if (ch === ',' && depth === 0) {
+      const t = current.trim();
+      if (t) elements.push(t);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  const t = current.trim();
+  if (t) elements.push(t);
+  return elements;
+}
+
+function scrambleArrayInCode(code) {
+  const arrayRe = /((const|let|var)\s+(\w+)\s*=\s*\[)([\s\S]*?)(\];)/g;
+  let m;
+  while ((m = arrayRe.exec(code)) !== null) {
+    const body = m[4];
+    if (!/https?:\/\//.test(body)) continue;
+    const elements = splitArrayElements(body);
+    if (elements.length < 2) continue;
+    const shuffled = shuffleUrls(elements);
+    const newBody = shuffled.map(e => '    ' + e).join(',\n');
+    const updated = code.slice(0, m.index) + m[1] + '\n' + newBody + '\n  ' + m[5] + code.slice(m.index + m[0].length);
+    return { updated, changed: true, count: elements.length };
+  }
+  return { updated: code, changed: false, count: 0 };
+}
+
 function scrambleExisting() {
   if (!curPage) return;
   const code = PAGE_CODES[curPage] || '';
   if (!code) { setSS('No source code saved for this page yet.', 'err'); return; }
-  const result = upsertUrlArrayInCode(code, [], 'scramble_existing');
+  const result = scrambleArrayInCode(code);
   if (!result.changed) { setSS('Could not find a URL array to scramble on this page.', 'err'); return; }
   PAGE_CODES[curPage] = result.updated;
   renderNav();
   extractAndRender(result.updated, PAGE_MAP[curPage] || curPage);
-  setSS('Scrambled ' + result.count + ' existing URL(s).', 'ok');
+  setSS('Scrambled ' + result.count + ' items.', 'ok');
 }
 
 function setTmStatus(msg, cls) {
